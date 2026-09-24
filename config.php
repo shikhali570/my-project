@@ -1,4 +1,8 @@
 <?php
+// ============================================================
+// پیکربندی عمومی — پارس سازه و آفیس
+// ============================================================
+
 // فعال‌سازی سشن ایمن
 if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.cookie_httponly', 1);
@@ -17,7 +21,32 @@ header("X-Content-Type-Options: nosniff");
 header("X-Frame-Options: SAMEORIGIN");
 header("X-XSS-Protection: 1; mode=block");
 
+// ------------------------------------------------------------
+// اطلاعات شرکت فروشنده
+// ------------------------------------------------------------
+const SITE = [
+    'name'          => 'پارس سازه و آفیس',
+    'tagline'       => 'مرجع تأمین تجهیزات دفاتر فنی و عمرانی',
+    'phone'         => '۰۲۱-۸۸۷۷۶۶۵۵',
+    'address'       => 'تهران، خیابان بهشتی، ساختمان پارس، واحد ۴',
+    'national_id'   => '۱۰۱۰۹۹۸۸۷۷۶',
+    'economic_code' => '۴۱۱۶۷۸۰۰۱',
+    'hours'         => 'شنبه تا چهارشنبه، ۸:۰۰ الی ۱۷:۳۰',
+];
+
+// ------------------------------------------------------------
+// دسته‌بندی‌های کالایی
+// ------------------------------------------------------------
+const CATEGORIES = [
+    'surveying'  => ['label' => 'ابزار دقیق و نقشه‌برداری', 'icon' => '📏'],
+    'hse'        => ['label' => 'ایمنی و HSE کارگاهی',     'icon' => '🦺'],
+    'plotter'    => ['label' => 'رول و چاپ نقشه',           'icon' => '🖨️'],
+    'stationery' => ['label' => 'بایگانی و زونکن',          'icon' => '📁'],
+];
+
+// ------------------------------------------------------------
 // اتصال پایگاه داده SQLite
+// ------------------------------------------------------------
 try {
     $db = new PDO('sqlite:' . __DIR__ . '/parssaze.db');
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -92,7 +121,75 @@ try {
     die("خطا در پایگاه داده: " . htmlspecialchars($e->getMessage()));
 }
 
-// تابع فرار از حملات XSS
-function e($str) {
+// ------------------------------------------------------------
+// توابع کمکی
+// ------------------------------------------------------------
+
+// فرار از حملات XSS
+function e($str)
+{
     return htmlspecialchars((string)$str, ENT_QUOTES, 'UTF-8');
+}
+
+// تبدیل ارقام لاتین به فارسی
+function faNum($value)
+{
+    $map = ['0' => '۰', '1' => '۱', '2' => '۲', '3' => '۳', '4' => '۴',
+            '5' => '۵', '6' => '۶', '7' => '۷', '8' => '۸', '9' => '۹',
+            ',' => '٬'];
+    return strtr((string)$value, $map);
+}
+
+// قالب‌بندی قیمت با ارقام فارسی و جداکننده هزارگان
+function fmtPrice($amount)
+{
+    return faNum(number_format((int)$amount));
+}
+
+// اولین کاراکتر یک رشته یونیکد (بدون وابستگی به mbstring)
+function firstChar($str)
+{
+    if (preg_match('/./us', (string)$str, $m)) {
+        return $m[0];
+    }
+    return (string)$str;
+}
+
+// وضعیت موجودی
+function stockInfo($stock)
+{
+    $stock = (int)$stock;
+    if ($stock <= 0) {
+        return ['label' => 'ناموجود', 'cls' => 'stock-out'];
+    }
+    if ($stock <= 5) {
+        return ['label' => 'فقط ' . faNum($stock) . ' عدد در انبار', 'cls' => 'stock-low'];
+    }
+    return ['label' => 'موجود در انبار', 'cls' => 'stock-in'];
+}
+
+// آیا درخواست AJAX (fetch) است؟
+function isAjaxRequest()
+{
+    $xrw = (string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '');
+    $acc = (string)($_SERVER['HTTP_ACCEPT'] ?? '');
+    return $xrw === 'fetch' || stripos($acc, 'application/json') === 0;
+}
+
+// خروجی JSON (برای درخواست‌های fetch)
+function jsonOut($data, $status = 200)
+{
+    http_response_code($status);
+    $GLOBALS['__preview_json'] = true; // مصرف‌شده توسط پروکسی پیش‌نمایش
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// ریدایرکت یکنواخت (در زمان اجرا و پیش‌نمایش)
+function redirect($url)
+{
+    $GLOBALS['__preview_redirect'] = $url; // مصرف‌شده توسط پروکسی پیش‌نمایش
+    header('Location: ' . $url, true, 302);
+    exit;
 }

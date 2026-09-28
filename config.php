@@ -48,10 +48,21 @@ if (empty($_SESSION['csrf_token'])) {
 
 // هدرهای امنیتی
 if (!headers_sent()) {
+    $host = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
+    $isPreviewHost = (bool)preg_match('/^(localhost|127\.0\.0\.1|[a-z0-9.-]+\.(e2b\.app|preview\.dev))(:\d+)?$/', $host);
+
     header('X-Content-Type-Options: nosniff');
-    header('X-Frame-Options: SAMEORIGIN');
     header('Referrer-Policy: strict-origin-when-cross-origin');
     header('X-XSS-Protection: 1; mode=block');
+
+    if ($isPreviewHost) {
+        // محیط پیش‌نمایش/توسعه: اجازه نمایش داخل iframe ابزار پیش‌نمایش
+        header("Content-Security-Policy: frame-ancestors *");
+    } else {
+        // محیط واقعی: جلوگیری از Clickjacking
+        header('X-Frame-Options: SAMEORIGIN');
+        header("Content-Security-Policy: frame-ancestors 'self'");
+    }
 }
 
 // ------------------------------------------------------------- Database

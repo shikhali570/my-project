@@ -1,0 +1,5 @@
+# دیتابیس محلی (فایل اجرا)
+parssaze.db
+*.db-journal
+*.db-wal
+*.db-shm

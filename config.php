@@ -7,7 +7,12 @@
  */
 
 date_default_timezone_set('Asia/Tehran');
-mb_internal_encoding('UTF-8');
+
+// اگر افزونه mbstring روی هاست نصب نباشد، همین‌جا با پیام راهنما متوقف می‌شویم
+// (به‌جای خطای ۵۰۰ مبهم در میانه اجرای برنامه).
+if (function_exists('mb_internal_encoding')) {
+    mb_internal_encoding('UTF-8');
+}
 
 define('APP_VERSION', '2.0.0');
 define('APP_ROOT', __DIR__);
@@ -74,8 +79,87 @@ try {
     $db->exec('PRAGMA foreign_keys = ON');
 } catch (PDOException $e) {
     http_response_code(500);
-    die('خطا در اتصال به پایگاه داده: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'));
+    header('Content-Type: text/html; charset=UTF-8');
+    echo '<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">'
+        . '<title>خطا در اتصال به پایگاه داده</title></head>'
+        . '<body style="font-family:Tahoma,sans-serif;padding:24px;line-height:2;background:#f8fafc">'
+        . '<h1 style="color:#b91c1c">خطا در اتصال به پایگاه داده</h1>'
+        . '<p><b>پیام فنی:</b> ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8') . '</p>'
+        . '<p>راه‌حل‌ها:</p><ol>'
+        . '<li>افزونه <code>pdo_sqlite</code> روی هاست فعال باشد و نسخه PHP حداقل ۷.۴ باشد.</li>'
+        . '<li>پوشه پروژه برای کاربر وب‌سرور قابل نوشتن باشد تا فایل <code>parssaze.db</code> ساخته شود '
+        . '(در IIS کاربر <code>IIS_IUSRS</code> با دسترسی Modify).</li>'
+        . '<li>فایل <code>check.php</code> را در مرورگر باز کنید تا وضعیت همه پیش‌نیازها را ببینید.</li>'
+        . '</ol></body></html>';
+    exit;
 }
+
+// ---------------------------------------------- نمایش خطاهای مهلک PHP
+// جلوگیری از «صفحه سفید» یا خطای ۵۰۰ بدون توضیح: اگر برنامه با خطای مهلک یا
+// استثنای مدیریت‌نشده متوقف شود، یک پیام فارسی قابل‌فهم نمایش داده می‌شود
+// (جزئیات فنی فقط زمانی که display_errors روشن باشد) و کاربر به check.php
+// راهنمایی می‌شود. همه مسیرها با پرچم APP_FATAL_SHOWN در برابر خروجی تکراری
+// محافظت می‌شوند.
+if (!function_exists('app_fatal_page')) {
+    function app_fatal_page($message, $file, $line)
+    {
+        if (headers_sent()) {
+            return;
+        }
+
+        http_response_code(500);
+        header('Content-Type: text/html; charset=UTF-8');
+
+        echo '<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">'
+            . '<title>خطای اجرای برنامه</title></head>'
+            . '<body style="font-family:Tahoma,sans-serif;padding:24px;line-height:2;background:#f8fafc">'
+            . '<h1 style="color:#b91c1c">خطای اجرای برنامه (۵۰۰)</h1>'
+            . '<p>اجرای برنامه متوقف شد. برای دیدن علت دقیق، فایل <code>check.php</code> را در '
+            . 'مرورگر باز کنید و پیش‌نیازها را بررسی کنید: نسخه PHP (حداقل ۷.۴)، افزونه‌های '
+            . '<code>pdo_sqlite</code> و <code>mbstring</code>، و دسترسی نوشتن پوشه پروژه.</p>';
+
+        if (ini_get('display_errors')) {
+            echo '<p><b>پیام فنی:</b> ' . htmlspecialchars((string)$message, ENT_QUOTES, 'UTF-8') . '</p>';
+            if ($file !== '') {
+                echo '<p><b>فایل:</b> ' . htmlspecialchars((string)$file, ENT_QUOTES, 'UTF-8')
+                    . ' — خط ' . (int)$line . '</p>';
+            }
+        }
+
+        echo '</body></html>';
+    }
+}
+
+$GLOBALS['APP_FATAL_SHOWN'] = false;
+
+// استثناها و خطاهای مدیریت‌نشده (مانند فراخوانی تابع ناموجود)
+set_exception_handler(function ($e) {
+    if (!empty($GLOBALS['APP_FATAL_SHOWN'])) {
+        return;
+    }
+    $GLOBALS['APP_FATAL_SHOWN'] = true;
+
+    $message = is_object($e) && method_exists($e, 'getMessage') ? $e->getMessage() : 'خطای نامشخص';
+    $file = is_object($e) && method_exists($e, 'getFile') ? $e->getFile() : '';
+    $line = is_object($e) && method_exists($e, 'getLine') ? $e->getLine() : 0;
+
+    app_fatal_page($message, $file, $line);
+});
+
+// خطاهای مهلک سطح موتور PHP (مانند اتمام حافظه یا فایل ناموجود در include)
+register_shutdown_function(function () {
+    if (!empty($GLOBALS['APP_FATAL_SHOWN'])) {
+        return;
+    }
+
+    $error = error_get_last();
+    if (!$error || !in_array($error['type'], array(E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR), true)) {
+        return;
+    }
+
+    $GLOBALS['APP_FATAL_SHOWN'] = true;
+    app_fatal_page($error['message'], isset($error['file']) ? $error['file'] : '', isset($error['line']) ? $error['line'] : 0);
+});
 
 require_once __DIR__ . '/inc/schema.php';   // ساخت جداول + ستون‌های جدید
 require_once __DIR__ . '/inc/seed.php';     // داده‌های نمونه (فقط بار اول)

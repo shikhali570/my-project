@@ -1,0 +1,42 @@
+# پارس سازه و آفیس | تنظیمات هاست اشتراکی Apache / LiteSpeed
+# ------------------------------------------------------------
+# این فایل کنار index.php قرار می‌گیرد. اگر هاست شما ویندوز/IIS است،
+# این فایل بی‌اثر است و باید از web.config استفاده کنید.
+
+# ۱) صفحه پیش‌فرض
+DirectoryIndex index.php index.html
+
+# ۲) غیرفعال‌کردن فهرست‌شدن پوشه‌ها
+#    (به‌جای Options -Indexes که روی بعضی هاست‌ها خطای ۵۰۰ می‌دهد)
+<IfModule mod_autoindex.c>
+  IndexIgnore *
+</IfModule>
+
+# ۳) مسدودکردن دسترسی مستقیم به پایگاه داده و فایل‌های حساس
+<FilesMatch "\.(db|db-journal|sqlite|log|md|sh)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+# ۴) مسدودکردن دسترسی مستقیم به پوشه‌های داخلی (فقط فایل‌های include)
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^(inc|views)/ - [F,L]
+</IfModule>
+
+# ۵) هدرهای امنیتی
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# ۶) رمزگذاری درست متن فارسی
+<IfModule mod_mime.c>
+  AddDefaultCharset UTF-8
+</IfModule>

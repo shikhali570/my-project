@@ -4,9 +4,9 @@
  * همه درخواست‌ها از این فایل عبور می‌کنند: index.php?page=...
  */
 
-require_once 'config.php';
-require_once 'inc/auth.php';    // ورود، ثبت‌نام، پروفایل، گذرواژه
-require_once 'inc/actions.php'; // سبد، سفارش، عملیات مدیریت
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/inc/auth.php';    // ورود، ثبت‌نام، پروفایل، گذرواژه
+require_once __DIR__ . '/inc/actions.php'; // سبد، سفارش، عملیات مدیریت
 
 $page = preg_replace('/[^a-z_]/', '', get('page', 'home'));
 if ($page === '') {

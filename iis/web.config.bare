@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  FALLBACK IIS CONFIG - LEVEL 2 (the barest possible file)
+
+  Use this ONLY if the root web.config still produces HTTP 500.19 even after
+  every optional section has been commented out. It removes defaultDocument,
+  which some hosts lock together with the <clear /> element.
+
+  HOW TO USE
+    1. Rename the root web.config to  web.config.off
+    2. Copy this file to the site root and rename it to  web.config
+    3. Reload the site
+    4. Reopen check.php - if everything is green, keep this file
+
+  At this level IIS uses its own default document list. If the site root still
+  shows "403.14" or a directory listing instead of the shop, open the explicit
+  address instead:   https://your-domain/index.php
+
+  There is deliberately NO PHP handler mapping here. Registering PHP through a
+  per-site web.config conflicts with the host's global FastCGI configuration
+  and breaks the whole site. Enable PHP from the control panel
+  (Plesk: Websites & Domains -> PHP Settings).
+-->
+<configuration>
+  <system.webServer>
+    <directoryBrowse enabled="false" />
+  </system.webServer>
+</configuration>

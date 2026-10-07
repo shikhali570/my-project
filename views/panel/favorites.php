@@ -37,7 +37,7 @@ foreach ($products as $p) {
     <div class="table-note">ارزش تقریبی سبد علاقه‌مندی‌ها: <strong><?= money($subtotal) ?></strong> (بدون ارزش افزوده)</div>
     <div class="pro-grid">
       <?php foreach ($products as $p) {
-          require 'views/partials/product_card.php';
+          require APP_ROOT . '/views/partials/product_card.php';
       } ?>
     </div>
   <?php endif; ?>

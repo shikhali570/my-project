@@ -382,12 +382,32 @@ add_row($groups, 'تنظیمات PHP', 'upload_max_filesize / post_max_size', in
 add_row($groups, 'تنظیمات PHP', 'upload_tmp_dir', ini_view('upload_tmp_dir'), true, $IS_WINDOWS ? 'روی IIS باید قابل نوشتن برای کاربر Application Pool باشد' : '');
 add_row($groups, 'تنظیمات PHP', 'default_charset', ini_view('default_charset'), true, 'برای نمایش درست فارسی باید UTF-8 باشد (.user.ini این مقدار را تنظیم می‌کند)');
 add_row($groups, 'تنظیمات PHP', 'date.timezone', ini_view('date.timezone'), true, 'برنامه خودش Asia/Tehran را تنظیم می‌کند');
+$extDir = (string)ini_get('extension_dir');
+$extDirOk = ($extDir !== '' && is_dir($extDir));
+add_row($groups, 'تنظیمات PHP', 'پوشه افزونه‌ها (extension_dir)', $extDir === '' ? '(خالی)' : $extDir, $extDirOk,
+    'اگر این مسیر وجود نداشته باشد، PHP نمی‌تواند افزونه‌هایی مثل pdo_sqlite و mbstring را بارگذاری کند؛ مقدار درست در php.ini سرور تنظیم می‌شود (پشتیبانی هاست).'
+    . (extension_loaded('pdo_sqlite') ? ' — pdo_sqlite در همین لحظه بارگذاری شده، پس فعلاً مشکلی نیست' : ''));
+add_row($groups, 'تنظیمات PHP', 'doc_root', ini_view('doc_root'), true,
+    'روی هاست اشتراکی معمولاً خالی است؛ مقدار داشتنش به‌تنهایی مشکلی ایجاد نمی‌کند');
+
+// پوشه کاری: روی IIS معمولاً ریشه سایت نیست و includeهای نسبی را می‌شکند
+$cwd = function_exists('getcwd') ? (string)getcwd() : '';
+$cwdOk = ($cwd === '' || rtrim(str_replace('\\', '/', $cwd), '/') === rtrim(str_replace('\\', '/', __DIR__), '/'));
+add_row($groups, 'تنظیمات PHP', 'پوشه کاری فعلی (getcwd)',
+    $cwd === '' ? '(نامشخص)' : $cwd, $cwdOk,
+    'این ردیف برای اطلاع است: روی IIS پوشه کاری معمولاً ریشه سایت نیست و همین علت خطای «Failed opening required» در نسخه‌های قبلی بود. برنامه با chdir(APP_ROOT) و includeهای مبتنی بر APP_ROOT/__DIR__ مستقل از پوشه کاری شده است');
 
 if ($isIIS) {
     add_row($groups, 'تنظیمات IIS/PHP', 'fastcgi.impersonate', ini_view('fastcgi.impersonate'),
         !ini_on('fastcgi.impersonate') || $sessionDirWritable || $rootWritable,
         'اگر روشن باشد (معمول روی IIS)، PHP با هویت کاربر درخواست‌کننده اجرا می‌شود و همین باعث می‌شود دسترسی نوشتن پوشه‌ها حساس شود; راه‌حل: پوشه سایت Modify برای IIS_IUSRS یا استفاده از tmp/sessions');
     add_row($groups, 'تنظیمات IIS/PHP', 'cgi.fix_pathinfo', ini_view('cgi.fix_pathinfo'), true, 'روی IIS معمولاً ۱ است و مشکلی ایجاد نمی‌کند');
+    $forceRedirect = trim((string)ini_get('cgi.force_redirect'));
+    $forceRedirectEmpty = ($forceRedirect === '');
+    add_row($groups, 'تنظیمات IIS/PHP', 'cgi.force_redirect',
+        $forceRedirectEmpty ? '(خالی — مقدار پیش‌فرض ۱)' : $forceRedirect,
+        true,
+        'اگر روی ۱ باشد و سرور متغیر REDIRECT_STATUS را به PHP نرساند، PHP با پیام «Security Alert! The PHP CGI cannot be accessed directly» و خطای ۵۰۰ از کار می‌افتد. حل آن کار پشتیبانی هاست است: تنظیم REDIRECT_STATUS=200 در محیط FastCGI یا قرار دادن cgi.force_redirect=0 در php.ini');
     add_row($groups, 'تنظیمات IIS/PHP', 'fastcgi.logging', ini_view('fastcgi.logging'), true,
         'روی IIS خطاهای FastCGI در Event Viewer (Windows Logs ← Application، منبع FastCGI/W3SVC) ثبت می‌شوند. اگر سایت ۵۰۰ می‌دهد و لاگ PHP خالی است، اینجا را ببینید');
     add_row($groups, 'تنظیمات IIS/PHP', 'متغیر محیطی PHP_FCGI_MAX_REQUESTS', (string)(getenv('PHP_FCGI_MAX_REQUESTS') ?: 'تعیین‌نشده'), true,
@@ -395,6 +415,43 @@ if ($isIIS) {
     add_row($groups, 'تنظیمات IIS/PHP', 'php-cgi.exe در حال اجرا', (PHP_BINARY !== '' ? PHP_BINARY : 'نامشخص'), true,
         'این مسیر باید در تنظیمات Handler سرور ثبت شده باشد (روی Plesk خودکار انجام می‌شود)');
 }
+
+// ================================ ۸.۵) بازرسی کد: وابستگی به پوشه کاری
+// include نسبی (بدون __DIR__/APP_ROOT) روی IIS شکست می‌خورد، چون پوشه کاری
+// php-cgi ریشه سایت نیست؛ نتیجه‌اش خطای ۵۰۰ در همان صفحه است.
+$scanFiles = array(
+    'index.php', 'api.php', 'export.php', 'php-test.php',
+    'views/home.php', 'views/product.php', 'views/panel/favorites.php',
+    'views/partials/product_card.php', 'inc/functions.php', 'inc/auth.php', 'inc/actions.php',
+);
+$relativeIncludes = array();
+$scannedCount = 0;
+foreach ($scanFiles as $scanFile) {
+    $full = __DIR__ . '/' . $scanFile;
+    if (!is_file($full)) {
+        continue;
+    }
+    $scannedCount++;
+    $source = (string)@file_get_contents($full);
+    if (preg_match_all('/(require|include)(_once)?\s*\(?\s*([\'"])([^\'"]+)\3/', $source, $matches, PREG_SET_ORDER)) {
+        foreach ($matches as $m) {
+            if (strpos($m[4], '__DIR__') !== false || strpos($m[4], 'APP_ROOT') !== false) {
+                continue;
+            }
+            $relativeIncludes[] = $scanFile . ' → ' . $m[4];
+        }
+    }
+}
+add_row($groups, 'بازرسی کد', 'include نسبی وابسته به پوشه کاری',
+    count($relativeIncludes) === 0
+        ? ('وجود ندارد (از ' . $scannedCount . ' فایل بررسی‌شده)')
+        : implode(' ، ', $relativeIncludes),
+    count($relativeIncludes) === 0,
+    'روی IIS پوشه کاری، ریشه سایت نیست؛ هر include نسبی باعث خطای ۵۰۰ «Failed opening required» می‌شود. در این نسخه همه includeها با __DIR__ یا APP_ROOT هستند و config.php هم chdir(APP_ROOT) می‌کند');
+add_row($groups, 'بازرسی کد', 'قفل‌کردن پوشه کاری به ریشه برنامه (chdir)',
+    defined('APP_ROOT') || strpos((string)@file_get_contents(__DIR__ . '/config.php'), 'chdir(APP_ROOT)') !== false ? 'انجام شده' : 'انجام نشده',
+    strpos((string)@file_get_contents(__DIR__ . '/config.php'), 'chdir(APP_ROOT)') !== false,
+    'در config.php پوشه کاری روی ریشه برنامه تنظیم می‌شود تا مسیرهای نسبی همیشه درست باشند');
 
 // ======================================== ۹) اثرگذاری .user.ini و فایل‌ها
 $userIniPath = __DIR__ . '/.user.ini';

@@ -152,7 +152,7 @@ $activeCat = $cat ? category_title($cat) : null;
 <?php else: ?>
   <div class="pro-grid">
     <?php foreach ($products as $p) {
-        require 'views/partials/product_card.php';
+        require APP_ROOT . '/views/partials/product_card.php';
     } ?>
   </div>
 

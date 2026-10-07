@@ -159,7 +159,7 @@ $reviews = [
     <div class="sec-head"><h2 class="sec-title">کالاهای مرتبط</h2></div>
     <div class="pro-grid">
       <?php foreach ($relatedRows as $p) {
-          require 'views/partials/product_card.php';
+          require APP_ROOT . '/views/partials/product_card.php';
       } ?>
     </div>
   </section>

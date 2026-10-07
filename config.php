@@ -20,10 +20,17 @@ if (function_exists('mb_internal_encoding')) {
     mb_internal_encoding('UTF-8');
 }
 
-define('APP_VERSION', '2.0.1');
+define('APP_VERSION', '2.0.2');
 define('APP_ROOT', __DIR__);
 define('DB_FILE', __DIR__ . '/parssaze.db');
 define('APP_TMP', __DIR__ . '/tmp');
+
+// پوشه کاری (Current Working Directory) را روی ریشه برنامه ثابت می‌کنیم.
+// روی IIS/FastCGI پوشه کاری معمولاً ریشه سایت نیست (مثلاً پوشه php-cgi یا
+// System32\inetsrv است) و در آن حالت هر include نسبی شکست می‌خورد و
+// خطای ۵۰۰ «Failed opening required ...» می‌دهد. این خط تضمین می‌کند
+// مسیرهای نسبی هم همیشه درست باز شوند.
+@chdir(APP_ROOT);
 
 // ===============================================================
 // ۱) نمایش خطاهای مهلک و استثناهای مدیریت‌نشده

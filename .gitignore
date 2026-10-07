@@ -6,3 +6,8 @@
 .DS_Store
 Thumbs.db
 *.log
+# پوشه موقت (فایل‌های نشست در زمان اجرا)
+tmp/*
+!tmp/.htaccess
+!tmp/web.config
+!tmp/.gitkeep_note.txt

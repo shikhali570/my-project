@@ -3,7 +3,7 @@
  * نقاط پایانی JSON برای تعامل لحظه‌ای (AJAX)
  * نمونه فراخوانی: api.php?do=cart_count  |  api.php?do=product_search&q=متر
  */
-require_once 'config.php';
+require_once __DIR__ . '/config.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');

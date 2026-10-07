@@ -1,19 +1,18 @@
-# پارس سازه و آفیس | تنظیمات هاست اشتراکی Apache / LiteSpeed
-# ------------------------------------------------------------
-# این فایل کنار index.php قرار می‌گیرد. اگر هاست شما ویندوز/IIS است،
-# این فایل بی‌اثر است و باید از web.config استفاده کنید.
+# Apache / LiteSpeed configuration (Linux hosting).
+# ASCII-only on purpose: FTP clients in "ASCII mode" corrupt UTF-8 bytes.
+# On Windows/IIS this file is ignored; web.config is used instead.
 
-# ۱) صفحه پیش‌فرض
+# 1) Default document
 DirectoryIndex index.php index.html
 
-# ۲) غیرفعال‌کردن فهرست‌شدن پوشه‌ها
-#    (به‌جای Options -Indexes که روی بعضی هاست‌ها خطای ۵۰۰ می‌دهد)
+# 2) Disable directory listing
+#    (IndexIgnore instead of "Options -Indexes", which causes 500 on some hosts)
 <IfModule mod_autoindex.c>
   IndexIgnore *
 </IfModule>
 
-# ۳) مسدودکردن دسترسی مستقیم به پایگاه داده و فایل‌های حساس
-<FilesMatch "\.(db|db-journal|sqlite|log|md|sh)$">
+# 3) Block direct access to the database and other sensitive files
+<FilesMatch "\.(db|db-journal|sqlite|log|md|sh|ini)$">
   <IfModule mod_authz_core.c>
     Require all denied
   </IfModule>
@@ -23,20 +22,20 @@ DirectoryIndex index.php index.html
   </IfModule>
 </FilesMatch>
 
-# ۴) مسدودکردن دسترسی مستقیم به پوشه‌های داخلی (فقط فایل‌های include)
+# 4) Block direct access to internal folders and to the temp folder
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteRule ^(inc|views)/ - [F,L]
+  RewriteRule ^(inc|views|tmp|docs|release)/ - [F,L]
 </IfModule>
 
-# ۵) هدرهای امنیتی
+# 5) Security headers
 <IfModule mod_headers.c>
   Header set X-Content-Type-Options "nosniff"
   Header set X-Frame-Options "SAMEORIGIN"
   Header set Referrer-Policy "strict-origin-when-cross-origin"
 </IfModule>
 
-# ۶) رمزگذاری درست متن فارسی
+# 6) Correct encoding for Persian text
 <IfModule mod_mime.c>
   AddDefaultCharset UTF-8
 </IfModule>

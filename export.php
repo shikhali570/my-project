@@ -3,7 +3,7 @@
  * خروجی CSV گزارش‌ها (فقط مدیر سیستم)
  * نمونه: export.php?type=orders
  */
-require_once 'config.php';
+require_once __DIR__ . '/config.php';
 require_login();
 if (!is_admin()) {
     http_response_code(403);

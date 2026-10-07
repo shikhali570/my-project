@@ -1,0 +1,4 @@
+This folder is created automatically by config.php and holds PHP session files
+plus temporary data. Keep the two guard files (.htaccess and web.config) so that
+direct HTTP access to the folder stays blocked on Apache and on IIS.
+Everything else in this folder can be deleted safely.

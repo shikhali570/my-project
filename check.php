@@ -101,6 +101,112 @@ $rows[] = array(
     'hint'  => 'برای عیب‌یابی روی On و در حالت نهایی روی Off باشد',
 );
 
+// ------------------------------------------- ۷) فایل‌های تنظیمات وب‌سرور
+$webConfigPath = __DIR__ . '/web.config';
+if (!file_exists($webConfigPath)) {
+    $rows[] = array(
+        'title' => 'فایل web.config',
+        'value' => 'وجود ندارد',
+        'ok'    => true,
+        'hint'  => 'برای هاست ویندوز/IIS لازم است؛ اگر سایت کار می‌کند این مورد مشکل نیست',
+    );
+} else {
+    $webConfigRaw = (string)@file_get_contents($webConfigPath);
+    $xmlOk = true;
+    $xmlValue = 'سالم';
+    $xmlHint = 'web.config نامعتبر روی IIS خطای ۵۰۰ می‌دهد؛ اگر مطمئن نیستید نام فایل را موقتاً به web.config.off تغییر دهید';
+
+    // بررسی ۱: وجود دو خط تیره پشت‌سرهم داخل توضیح‌ها.
+    // استاندارد XML این را ممنوع کرده و IIS (XmlReader) آن را رد می‌کند،
+    // ولی برخی کتابخانه‌ها (libxml) سهل‌گیرند؛ پس جداگانه بررسی می‌شود.
+    if (preg_match_all('/<!--(.*?)-->/s', $webConfigRaw, $comments)) {
+        foreach ($comments[1] as $commentBody) {
+            if (strpos($commentBody, '--') !== false) {
+                $xmlOk = false;
+                $xmlValue = 'نامعتبر: دو خط تیره پشت‌سرهم داخل توضیح‌ها (XML)';
+                $xmlHint = 'این حالت روی IIS خطای ۵۰۰ می‌دهد. در توضیح‌های web.config نباید «--» استفاده شود؛ از خط تیره فارسی (—) یا متن ساده استفاده کنید';
+                break;
+            }
+        }
+    }
+
+    // بررسی ۲: تجزیه واقعی XML (expat سخت‌گیر است و به رفتار IIS نزدیک‌تر)
+    if ($xmlOk && function_exists('xml_parser_create')) {
+        $parser = xml_parser_create('UTF-8');
+        if ($parser !== false) {
+            xml_parser_set_option($parser, XML_OPTION_CASE_FOLDING, 0);
+            $parsed = @xml_parse($parser, $webConfigRaw, true);
+            if ($parsed === 0) {
+                $errorText = function_exists('xml_error_string')
+                    ? trim((string)@xml_error_string(@xml_get_error_code($parser)))
+                    : 'ساختار XML نامعتبر';
+                $xmlOk = false;
+                $xmlValue = 'نامعتبر: ' . $errorText . ' (خط ' . (int)@xml_get_current_line_number($parser) . ')';
+            }
+            xml_parser_free($parser);
+        }
+    } elseif ($xmlOk && function_exists('simplexml_load_string')) {
+        if (function_exists('libxml_use_internal_errors')) {
+            $prev = libxml_use_internal_errors(true);
+        } else {
+            $prev = null;
+        }
+        $xml = @simplexml_load_string($webConfigRaw);
+        if ($xml === false) {
+            $errors = function_exists('libxml_get_errors') ? libxml_get_errors() : array();
+            $xmlOk = false;
+            $xmlValue = 'نامعتبر: ' . (isset($errors[0]) ? trim($errors[0]->message) . ' (خط ' . (int)$errors[0]->line . ')' : 'ساختار XML نامعتبر');
+        }
+        if (function_exists('libxml_clear_errors')) {
+            libxml_clear_errors();
+        }
+        if ($prev !== null) {
+            libxml_use_internal_errors($prev);
+        }
+    }
+
+    if ($xmlOk && !function_exists('xml_parser_create') && !function_exists('simplexml_load_string')) {
+        $xmlValue = 'بررسی نشد (افزونه XML روی این هاست فعال نیست)';
+    }
+
+    $rows[] = array(
+        'title' => 'فایل web.config (اعتبار XML)',
+        'value' => $xmlValue,
+        'ok'    => $xmlOk,
+        'hint'  => $xmlHint,
+    );
+}
+
+$htaccessPath = __DIR__ . '/.htaccess';
+$htaccessExists = file_exists($htaccessPath);
+$htaccessValue = $htaccessExists ? 'موجود' : 'وجود ندارد';
+$htaccessOk = true;
+$htaccessHint = 'فقط برای هاست لینوکس/آپاچی لازم است';
+if ($htaccessExists && function_exists('file_get_contents')) {
+    $htaccessRaw = (string)@file_get_contents($htaccessPath);
+    // دستورهای پرخطری که اگر خارج از IfModule باشند، روی بعضی هاست‌ها خطای ۵۰۰ می‌دهند.
+    $withoutIfModule = preg_replace('/<IfModule\b.*?<\/IfModule>/s', '', $htaccessRaw);
+    if (preg_match('/^\s*(Options|php_value|php_flag|php_admin_value|Header|Require)\b/m', (string)$withoutIfModule, $risky)) {
+        $htaccessOk = false;
+        $htaccessValue = 'دستور پرخطر خارج از IfModule: ' . trim($risky[1]);
+        $htaccessHint = 'این دستور روی هاست‌های اشتراکی می‌تواند خطای ۵۰۰ بدهد؛ آن را داخل <IfModule> بگذارید یا حذف کنید';
+    }
+}
+$rows[] = array(
+    'title' => 'فایل .htaccess',
+    'value' => $htaccessValue,
+    'ok'    => $htaccessOk,
+    'hint'  => $htaccessHint,
+);
+
+$userIniPath = __DIR__ . '/.user.ini';
+$rows[] = array(
+    'title' => 'فایل .user.ini',
+    'value' => file_exists($userIniPath) ? 'موجود' : 'وجود ندارد',
+    'ok'    => true,
+    'hint'  => 'تنظیمات PHP در سطح پوشه (نمایش خطا، حجم آپلود) برای هاست اشتراکی CGI/FastCGI',
+);
+
 $allOk = true;
 foreach ($rows as $row) {
     if (!$row['ok']) {

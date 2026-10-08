@@ -18,6 +18,29 @@ $topCustomers = $db->query("SELECT u.id, u.name, u.company, COUNT(o.id) c, COALE
                             WHERE o.status != 'canceled' GROUP BY u.id ORDER BY s DESC LIMIT 5")->fetchAll();
 ?>
 
+<?php
+// موارد نیازمند اقدام فوری؛ هر مورد به فهرست مربوط لینک می‌شود
+$awaiting = (int)$db->query("SELECT COUNT(*) FROM orders WHERE status = 'pending'")->fetchColumn();
+$attention = [];
+if ($awaiting > 0) {
+    $attention[] = ['⏳', fa_num($awaiting) . ' سفارش در انتظار تأیید', 'index.php?page=admin_orders&status=pending'];
+}
+if ((int)$stats['rfqs_open'] > 0) {
+    $attention[] = ['📋', fa_num($stats['rfqs_open']) . ' استعلام باز برای پاسخ‌دهی', 'index.php?page=admin_rfqs'];
+}
+if ((int)$stats['low_stock'] > 0) {
+    $attention[] = ['⚠️', fa_num($stats['low_stock']) . ' کالای کم‌موجود', 'index.php?page=admin_products&stock=low'];
+}
+?>
+<section class="attention-strip" aria-labelledby="attention-title">
+  <h2 id="attention-title" class="attention-title">نیازمند اقدام</h2>
+  <?php if ($attention): foreach ($attention as $a): ?>
+    <a class="attention-item" href="<?= e($a[2]) ?>"><span aria-hidden="true"><?= $a[0] ?></span> <?= e($a[1]) ?> <span class="attention-go">مشاهده ←</span></a>
+  <?php endforeach; else: ?>
+    <span class="attention-ok">✅ مورد فوری برای پیگیری وجود ندارد.</span>
+  <?php endif; ?>
+</section>
+
 <div class="kpi-grid">
   <div class="kpi-card">
     <span class="kpi-ico blue">💰</span>
@@ -110,7 +133,7 @@ $topCustomers = $db->query("SELECT u.id, u.name, u.company, COUNT(o.id) c, COALE
       <h3 class="card-title">آخرین سفارش‌ها</h3>
       <a class="link-more" href="index.php?page=admin_orders">همه ←</a>
     </div>
-    <table class="data-table">
+    <div class="table-wrap"><table class="data-table">
       <thead><tr><th>شماره</th><th>مشتری</th><th>مبلغ</th><th>وضعیت</th><th></th></tr></thead>
       <tbody>
         <?php foreach ($recentOrders as $o): ?>
@@ -126,7 +149,7 @@ $topCustomers = $db->query("SELECT u.id, u.name, u.company, COUNT(o.id) c, COALE
           </tr>
         <?php endforeach; ?>
       </tbody>
-    </table>
+    </table></div>
   </div>
 
   <div class="card">

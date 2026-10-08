@@ -939,3 +939,27 @@ code, .mono { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; letter-
 .cart-table-head .card-title { margin: 0; }
 .clear-cart-form { margin: 0; }
 .pro-grid--related { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+
+/* ---- v2.1.1: نوار «نیازمند اقدام» داشبورد مدیریت ---- */
+.attention-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; background: var(--white); border: 1px solid var(--g200); border-inline-start: 4px solid var(--orange); border-radius: var(--r); padding: 12px 16px; margin-bottom: 16px; }
+.attention-title { font-size: 14px; font-weight: 800; color: var(--navy); margin: 0 6px 0 0; }
+.attention-item { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: var(--g50); border: 1px solid var(--g200); font-size: 13px; font-weight: 600; color: var(--navy); text-decoration: none; }
+.attention-item:hover { border-color: var(--blue); color: var(--blue); }
+.attention-go { color: var(--blue); font-size: 12px; font-weight: 700; }
+.attention-ok { color: var(--green); font-weight: 600; font-size: 13px; }
+
+/* ---- v2.1.1: پنل‌های خریدار و مدیر روی صفحه‌های کوچک بدون سرریز افقی ---- */
+@media (max-width: 1024px) {
+  .admin-shell, .panel-layout, .panel-grid, .panel-main, .admin-page, .admin-grid-2, .detail-grid, .detail-grid.wide-left { grid-template-columns: minmax(0, 1fr); }
+  .admin-content, .panel-main, .panel-side { min-width: 0; }
+  .admin-side { visibility: hidden; transition: transform .25s, visibility .25s; }
+  .admin-side.open { visibility: visible; }
+}
+@media (max-width: 768px) {
+  .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .panel-head, .admin-topbar, .topbar-stats, .tabs { flex-wrap: wrap; }
+  .admin-topbar { gap: 10px; }
+}
+@media (max-width: 420px) {
+  .kpi-grid { grid-template-columns: minmax(0, 1fr); }
+}

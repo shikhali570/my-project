@@ -70,26 +70,26 @@ $filteredTotal = (int)$sumFiltered->fetchColumn();
 
   <form class="filter-bar wide" method="GET" action="index.php">
     <input type="hidden" name="page" value="admin_orders">
-    <input type="text" name="q" value="<?= e($q) ?>" placeholder="شماره سفارش، مشتری، تلفن یا کد رهگیری…">
-    <select name="status">
+    <input type="text" name="q" value="<?= e($q) ?>" placeholder="شماره سفارش، مشتری، تلفن یا کد رهگیری…" aria-label="جست‌وجو در سفارش‌ها">
+    <select name="status" aria-label="فیلتر وضعیت سفارش">
       <option value="">همه وضعیت‌ها</option>
       <?php foreach (order_statuses() as $k => $label): ?>
         <option value="<?= $k ?>" <?= $status === $k ? 'selected' : '' ?>><?= e($label) ?></option>
       <?php endforeach; ?>
     </select>
-    <select name="payment">
+    <select name="payment" aria-label="فیلتر وضعیت پرداخت">
       <option value="">وضعیت پرداخت</option>
       <?php foreach (payment_statuses() as $k => $label): ?>
         <option value="<?= $k ?>" <?= $payment === $k ? 'selected' : '' ?>><?= e($label) ?></option>
       <?php endforeach; ?>
     </select>
-    <input type="date" name="from" value="<?= e($from) ?>" title="از تاریخ (میلادی)">
-    <input type="date" name="to" value="<?= e($to) ?>" title="تا تاریخ (میلادی)">
+    <input type="date" name="from" value="<?= e($from) ?>" title="از تاریخ (میلادی)" aria-label="از تاریخ (میلادی)">
+    <input type="date" name="to" value="<?= e($to) ?>" title="تا تاریخ (میلادی)" aria-label="تا تاریخ (میلادی)">
     <button class="btn btn-sm btn-primary" type="submit">فیلتر</button>
     <a class="btn btn-sm btn-secondary" href="index.php?page=admin_orders">بازنشانی</a>
   </form>
 
-  <table class="data-table">
+  <div class="table-wrap"><table class="data-table">
     <thead>
       <tr><th>شماره سفارش</th><th>مشتری</th><th>مبلغ کل</th><th>پرداخت</th><th>وضعیت سفارش</th><th>تغییر سریع وضعیت</th><th>رهگیری</th><th></th></tr>
     </thead>
@@ -120,18 +120,18 @@ $filteredTotal = (int)$sumFiltered->fetchColumn();
           </td>
           <td><span class="status <?= order_status_class($o['status']) ?>"><?= order_status_icon($o['status']) ?> <?= e(order_status_label($o['status'])) ?></span></td>
           <td>
-            <form class="inline-form" method="POST" action="index.php">
+            <form class="inline-form" method="POST" action="index.php" data-confirm-canceled>
               <?= csrf_field() ?>
               <input type="hidden" name="action" value="order_update">
               <input type="hidden" name="id" value="<?= (int)$o['id'] ?>">
               <input type="hidden" name="payment_status" value="<?= e($o['payment_status']) ?>">
               <input type="hidden" name="tracking_code" value="<?= e($o['tracking_code']) ?>">
-              <select name="status" class="mini-select">
+              <select name="status" class="mini-select" aria-label="تغییر وضعیت سفارش <?= e($o['order_no']) ?>" data-original="<?= e($o['status']) ?>">
                 <?php foreach (order_statuses() as $k => $label): ?>
                   <option value="<?= $k ?>" <?= $o['status'] === $k ? 'selected' : '' ?>><?= e($label) ?></option>
                 <?php endforeach; ?>
               </select>
-              <button class="btn btn-icon" type="submit" title="ثبت">💾</button>
+              <button class="btn btn-icon" type="submit" title="ثبت" aria-label="ثبت وضعیت سفارش <?= e($o['order_no']) ?>">💾</button>
             </form>
           </td>
           <td class="mono small"><?= e($o['tracking_code'] ?: '—') ?></td>
@@ -149,7 +149,7 @@ $filteredTotal = (int)$sumFiltered->fetchColumn();
         <tr><td colspan="8" class="empty-mini">سفارشی با این فیلترها یافت نشد.</td></tr>
       <?php endif; ?>
     </tbody>
-  </table>
+  </table></div>
 
   <?php if ($pg['pages'] > 1): ?>
     <nav class="pagination">

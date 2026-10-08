@@ -396,6 +396,19 @@ function order_status_label($status)
     return $all[$status] ?? $status;
 }
 
+/** برچسب فارسی رویدادهای سفارش برای نمایش به خریدار (متن توضیح خود رویداد فارسی است) */
+function log_action_label($action)
+{
+    $map = [
+        'order_create'  => 'ثبت سفارش',
+        'order_update'  => 'تغییر وضعیت سفارش',
+        'order_cancel'  => 'لغو سفارش',
+        'invoice_issue' => 'صدور صورتحساب',
+        'order_delete'  => 'حذف سفارش',
+    ];
+    return $map[$action] ?? 'به‌روزرسانی';
+}
+
 function order_status_class($status)
 {
     $map = [

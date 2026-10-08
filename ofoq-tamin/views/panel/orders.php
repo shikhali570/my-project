@@ -45,15 +45,20 @@ foreach ($db->query("SELECT status, COUNT(*) c FROM orders WHERE user_id = " . (
     <h3 class="card-title"><?= fa_num($pg['total']) ?> سفارش</h3>
     <form class="inline-search" method="GET" action="index.php">
       <input type="hidden" name="page" value="panel_orders">
-      <input type="text" name="q" value="<?= e($q) ?>" placeholder="جست‌وجوی شماره سفارش یا کد رهگیری">
+      <input type="text" name="q" value="<?= e($q) ?>" placeholder="جست‌وجوی شماره سفارش یا کد رهگیری" aria-label="جست‌وجوی شماره سفارش یا کد رهگیری">
       <button class="btn btn-sm btn-primary" type="submit">جست‌وجو</button>
     </form>
   </div>
 
   <?php if (!$orders): ?>
-    <div class="empty-mini">سفارشی با این مشخصات یافت نشد.</div>
+    <?php if ($q === '' && $status === '' && (int)$pg['total'] === 0): ?>
+      <div class="empty-state"><span>📦</span><h3>هنوز سفارشی ثبت نکرده‌اید</h3><p>کالاها را از کاتالوگ انتخاب کنید یا برای پروژه‌های بزرگ استعلام قیمت بگیرید.</p>
+        <div class="flex-gap"><a class="btn btn-primary" href="index.php?page=home">شروع خرید</a><a class="btn btn-secondary" href="index.php?page=rfq">استعلام قیمت پروژه</a></div></div>
+    <?php else: ?>
+      <div class="empty-mini">سفارشی با این مشخصات یافت نشد. فیلتر یا عبارت جست‌وجو را تغییر دهید.</div>
+    <?php endif; ?>
   <?php else: ?>
-    <table class="data-table">
+    <div class="table-wrap"><table class="data-table">
       <thead>
         <tr>
           <th>شماره سفارش</th><th>تاریخ ثبت</th><th>اقلام</th><th>مبلغ کل</th>
@@ -87,7 +92,7 @@ foreach ($db->query("SELECT status, COUNT(*) c FROM orders WHERE user_id = " . (
           </tr>
         <?php endforeach; ?>
       </tbody>
-    </table>
+    </table></div>
 
     <?php if ($pg['pages'] > 1): ?>
       <nav class="pagination">

@@ -37,7 +37,7 @@ $lastOrder = $recentOrders[0] ?? null;
   <div class="kpi-card">
     <span class="kpi-ico green">💰</span>
     <div>
-      <span>مجموع خرید (بدون سفارش لغوی)</span>
+      <span>مجموع خرید (بدون سفارش‌های لغوشده)</span>
       <strong><?= money_short($stats['spent']) ?> تومان</strong>
       <small>میانگین هر سفارش: <?= money($stats['orders'] ? (int)round($stats['spent'] / $stats['orders']) : 0) ?></small>
     </div>
@@ -58,6 +58,26 @@ $lastOrder = $recentOrders[0] ?? null;
       <small><a href="index.php?page=panel_favorites">مشاهده لیست علاقه‌مندی</a></small>
     </div>
   </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h3 class="card-title">تکمیل کارپوشه مالیاتی</h3></div>
+  <?php
+  $missing = [];
+  foreach (['national_id' => 'شناسه ملی / کد اقتصادی', 'economic_code' => 'کد اقتصادی', 'postal_code' => 'کد پستی', 'address' => 'نشانی'] as $key => $label) {
+      if (empty($me[$key])) {
+          $missing[] = $label;
+      }
+  }
+  ?>
+  <?php if (!$missing): ?>
+    <div class="alert success">کارپوشه شما کامل است ✅ صورتحساب‌ها با اطلاعات رسمی شما صادر می‌شود.</div>
+  <?php else: ?>
+    <div class="alert warn">
+      موارد زیر در کارپوشه شما تکمیل نشده است: <strong><?= e(implode(' | ', $missing)) ?></strong>
+      <a class="btn btn-sm btn-primary" href="index.php?page=panel_profile">تکمیل اطلاعات</a>
+    </div>
+  <?php endif; ?>
 </div>
 
 <?php if ($lastOrder): ?>
@@ -85,7 +105,7 @@ $lastOrder = $recentOrders[0] ?? null;
     <?php if (!$recentOrders): ?>
       <div class="empty-mini">هنوز سفارشی ثبت نکرده‌اید. <a href="index.php?page=home">شروع خرید</a></div>
     <?php else: ?>
-      <table class="data-table">
+      <div class="table-wrap"><table class="data-table">
         <thead><tr><th>شماره</th><th>تاریخ</th><th>مبلغ</th><th>وضعیت</th><th></th></tr></thead>
         <tbody>
           <?php foreach ($recentOrders as $o): ?>
@@ -98,7 +118,7 @@ $lastOrder = $recentOrders[0] ?? null;
             </tr>
           <?php endforeach; ?>
         </tbody>
-      </table>
+      </table></div>
     <?php endif; ?>
   </div>
 
@@ -162,24 +182,4 @@ $lastOrder = $recentOrders[0] ?? null;
       </div>
     <?php endforeach; endif; ?>
   </div>
-</div>
-
-<div class="card">
-  <div class="card-head"><h3 class="card-title">تکمیل کارپوشه مالیاتی</h3></div>
-  <?php
-  $missing = [];
-  foreach (['national_id' => 'شناسه ملی / کد اقتصادی', 'economic_code' => 'کد اقتصادی', 'postal_code' => 'کد پستی', 'address' => 'نشانی'] as $key => $label) {
-      if (empty($me[$key])) {
-          $missing[] = $label;
-      }
-  }
-  ?>
-  <?php if (!$missing): ?>
-    <div class="alert success">کارپوشه شما کامل است ✅ صورتحساب‌ها با اطلاعات رسمی شما صادر می‌شود.</div>
-  <?php else: ?>
-    <div class="alert warn">
-      موارد زیر در کارپوشه شما تکمیل نشده است: <strong><?= e(implode(' | ', $missing)) ?></strong>
-      <a class="btn btn-sm btn-primary" href="index.php?page=panel_profile">تکمیل اطلاعات</a>
-    </div>
-  <?php endif; ?>
 </div>

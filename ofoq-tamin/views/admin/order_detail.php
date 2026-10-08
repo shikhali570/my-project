@@ -97,14 +97,14 @@ $currentIdx = array_search($order['status'], $steps, true);
 
     <div class="card">
       <h3 class="card-title">به‌روزرسانی وضعیت و اطلاعات ارسال</h3>
-      <form method="POST" action="index.php">
+      <form method="POST" action="index.php" data-confirm-canceled>
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="order_update">
         <input type="hidden" name="id" value="<?= (int)$order['id'] ?>">
         <div class="grid-2">
           <div class="input-group">
-            <label>وضعیت سفارش</label>
-            <select name="status">
+            <label for="od-status">وضعیت سفارش</label>
+            <select id="od-status" name="status" data-original="<?= e($order[\'status\']) ?>">
               <?php foreach (order_statuses() as $k => $label): ?>
                 <option value="<?= $k ?>" <?= $order['status'] === $k ? 'selected' : '' ?>><?= e($label) ?></option>
               <?php endforeach; ?>
@@ -135,7 +135,7 @@ $currentIdx = array_search($order['status'], $steps, true);
         </div>
         <div class="form-actions">
           <button class="btn btn-primary" type="submit">💾 ثبت به‌روزرسانی</button>
-          <button class="btn btn-secondary" type="button" data-confirm="این سفارش و صورتحساب آن حذف شود؟" data-form="delOrder">🗑️ حذف سفارش</button>
+          <button class="btn btn-danger" type="button" data-confirm="این سفارش و صورتحساب آن حذف شود؟" data-form="delOrder">🗑️ حذف سفارش</button>
         </div>
       </form>
       <form id="delOrder" method="POST" action="index.php" class="hidden">

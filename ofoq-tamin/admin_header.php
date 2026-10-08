@@ -80,7 +80,7 @@ $menuGroups = [
 
   <div class="admin-content">
     <header class="admin-topbar">
-      <button class="burger" type="button" onclick="document.getElementById('adminSide').classList.toggle('open')">☰</button>
+      <button class="burger" type="button" aria-label="باز و بسته کردن منوی مدیریت" aria-controls="adminSide" aria-expanded="false" onclick="var s=document.getElementById('adminSide');s.classList.toggle('open');this.setAttribute('aria-expanded',s.classList.contains('open')?'true':'false')">☰</button>
       <div>
         <h1 class="panel-title"><?= e($pageTitle) ?></h1>
         <div class="crumbs">
@@ -112,7 +112,7 @@ $menuGroups = [
     <?php if (!empty($flashes)): ?>
       <div class="toast-wrap no-print">
         <?php foreach ($flashes as $f): ?>
-          <div class="toast-bar <?= e($f['type']) ?>"><?= $f['message'] ?></div>
+          <div class="toast-bar <?= e($f['type']) ?>"><?= e($f['message']) ?></div>
         <?php endforeach; ?>
       </div>
     <?php endif; ?>

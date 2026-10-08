@@ -349,3 +349,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // فرم‌های دارای data-ajax="off" به صورت معمولی ارسال شوند
   document.querySelectorAll('form[data-ajax="off"]').forEach((f) => (f.dataset.ajax = 'off'));
 });
+
+/* ----------------------------------------------- تأیید پیش از لغو سفارش (مدیر) */
+document.addEventListener('submit', (ev) => {
+  const form = ev.target;
+  if (!form || !form.hasAttribute || !form.hasAttribute('data-confirm-canceled')) return;
+  const select = form.querySelector('select[name="status"]');
+  if (!select || select.value !== 'canceled' || select.dataset.original === 'canceled') return;
+  if (!window.confirm('این سفارش به «لغو شده» تغییر می‌کند. ادامه می‌دهید؟')) {
+    ev.preventDefault();
+  }
+});

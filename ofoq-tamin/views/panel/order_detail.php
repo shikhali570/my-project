@@ -60,7 +60,7 @@ $vatPercent = fa_num((float)settings('vat_rate', 10), 0);
 <div class="detail-grid">
   <div class="card">
     <h3 class="card-title">اقلام سفارش</h3>
-    <table class="data-table">
+    <div class="table-wrap"><table class="data-table">
       <thead><tr><th>#</th><th>کالا</th><th>قیمت واحد</th><th>تعداد</th><th>مبلغ</th></tr></thead>
       <tbody>
         <?php foreach ($rows as $i => $r): ?>
@@ -76,7 +76,7 @@ $vatPercent = fa_num((float)settings('vat_rate', 10), 0);
           </tr>
         <?php endforeach; ?>
       </tbody>
-    </table>
+    </table></div>
 
     <div class="sum-line"><span>جمع اقلام:</span><span><?= money($order['subtotal']) ?></span></div>
     <?php if ($order['discount'] > 0): ?>
@@ -139,7 +139,7 @@ $vatPercent = fa_num((float)settings('vat_rate', 10), 0);
         <ul class="log-list">
           <?php foreach ($logRows as $l): ?>
             <li>
-              <strong><?= e($l['action']) ?></strong>
+              <strong><?= e(log_action_label($l['action'])) ?></strong>
               <span><?= e($l['details']) ?></span>
               <small><?= jdate($l['created_at'], true) ?></small>
             </li>

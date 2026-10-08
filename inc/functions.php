@@ -34,6 +34,12 @@ function fa_num($number, $decimals = 0)
     return str_replace(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'], $out);
 }
 
+/** متن (مثل شماره نسخه ۲.۱.۰) را بدون تبدیل به عدد، با ارقام فارسی برمی‌گرداند */
+function fa_text($text)
+{
+    return str_replace(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'], (string)$text);
+}
+
 /** مبلغ به تومان با ارقام فارسی */
 function money($amount)
 {
@@ -239,6 +245,54 @@ function redirect($url)
     exit;
 }
 
+/** فقط مسیرهای داخلی index.php مجازند (جلوگیری از ریدایرکت به سایت دیگر) */
+function safe_local_url($url, $default = 'index.php?page=home')
+{
+    $url = (string)$url;
+    if (preg_match('~^index\.php(\?[A-Za-z0-9_=&%.+\-]*)?$~', $url)) {
+        return $url;
+    }
+    return $default;
+}
+
+// ------------------------------------------- فرم‌ها: ورودی قبلی و پیام خطای فیلد
+/** ورودی‌ها و خطاهای یک فرم را برای نمایش پس از ریدایرکت نگه می‌دارد */
+function remember_form($form, array $input, array $errors)
+{
+    $_SESSION['form_state'][$form] = ['old' => $input, 'errors' => $errors];
+}
+
+/** وضعیت فرم را می‌خواند و پاک می‌کند (یک‌بار مصرف) */
+function take_form_state($form)
+{
+    $state = $_SESSION['form_state'][$form] ?? ['old' => [], 'errors' => []];
+    unset($_SESSION['form_state'][$form]);
+    return $state;
+}
+
+/** متن خطای یک فیلد فرم (در صورت وجود) */
+function field_error(array $errors, $key)
+{
+    if (empty($errors[$key])) {
+        return '';
+    }
+    return '<span class="field-error" id="fe-' . e($key) . '">' . e($errors[$key]) . '</span>';
+}
+
+/**
+ * ویژگی‌های دسترس‌پذیری یک ورودی: در صورت خطا کلاس و aria-invalid، و در هر حالت
+ * aria-describedby شامل شناسه راهنما ($hintId) و پیام خطا (در صورت وجود)
+ */
+function field_invalid_attr(array $errors, $key, $hintId = '')
+{
+    $ids = trim($hintId . ' ' . (empty($errors[$key]) ? '' : 'fe-' . $key));
+    $describedBy = $ids !== '' ? ' aria-describedby="' . e($ids) . '"' : '';
+    if (empty($errors[$key])) {
+        return $describedBy;
+    }
+    return ' class="is-invalid" aria-invalid="true"' . $describedBy;
+}
+
 function current_url($withQuery = true)
 {
     $path = basename($_SERVER['SCRIPT_NAME'] ?? 'index.php');
@@ -432,6 +486,14 @@ function product_url($id)
     return 'index.php?page=product&id=' . (int)$id;
 }
 
+/** لینک استعلام قیمت با یک کالا از پیش در متن فرم استعلام */
+function rfq_prefill_url(array $p, $qty = 1)
+{
+    $line = '۱- ' . $p['name'] . ' (' . $p['brand'] . ') | شناسه مالیاتی: ' . $p['tax_id']
+        . ' | تعداد: ' . fa_num($qty) . ' ' . $p['unit'];
+    return 'index.php?page=rfq&items=' . rawurlencode($line);
+}
+
 // ------------------------------------------------------------------ سبد
 function cart_count()
 {
@@ -462,7 +524,9 @@ function cart_items(PDO $db)
 
 /**
  * محاسبه جمع‌های سبد خرید
- * @return array{subtotal:int,discount:int,tax:int,shipping:int,total:int,items:array,coupon:?array}
+ * کد تخفیف فقط وقتی اعمال می‌شود که معتبر باشد. در غیر این صورت coupon = null
+ * و couponError دلیل نامعتبربودن را دارد (تا کد نامعتبر مصرف یا «فعال» نشان داده نشود).
+ * @return array{subtotal:int,discount:int,tax:int,shipping:int,total:int,items:array,coupon:?array,couponError:?string,freeShippingMin:int}
  */
 function cart_totals(PDO $db, $couponCode = null)
 {
@@ -473,21 +537,26 @@ function cart_totals(PDO $db, $couponCode = null)
     }
 
     $coupon = null;
+    $couponError = null;
     $discount = 0;
     if ($couponCode) {
-        $coupon = coupon_find($db, $couponCode);
-        $discount = coupon_discount($coupon, $subtotal);
+        $found = coupon_find($db, $couponCode);
+        $couponError = coupon_error($found, $subtotal);
+        if ($couponError === null) {
+            $coupon = $found;
+            $discount = coupon_discount($found, $subtotal);
+        }
     }
 
     $tax = (int)round(($subtotal - $discount) * vat_rate());
+    $freeShippingMin = (int)settings('free_shipping_min', 0);
     $shipping = 0;
-    if ($subtotal > 0) {
-        $freeMin = (int)settings('free_shipping_min', 0);
-        $shipping = ($freeMin > 0 && $subtotal >= $freeMin) ? 0 : (int)settings('shipping_cost', 0);
+    if ($subtotal > 0 && !($freeShippingMin > 0 && $subtotal >= $freeShippingMin)) {
+        $shipping = (int)settings('shipping_cost', 0);
     }
     $total = $subtotal - $discount + $tax + $shipping;
 
-    return compact('subtotal', 'discount', 'tax', 'shipping', 'total', 'items', 'coupon');
+    return compact('subtotal', 'discount', 'tax', 'shipping', 'total', 'items', 'coupon', 'couponError', 'freeShippingMin');
 }
 
 function coupon_find(PDO $db, $code)

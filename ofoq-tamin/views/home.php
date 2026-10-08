@@ -11,6 +11,10 @@ $onlyAvailable = get('available') === '1';
 $where = [];
 $params = [];
 
+// کالای غیرفعال فقط برای مدیران دیده می‌شود (برای خریدار، لینکِ بن‌بست ساخته نمی‌شود)
+if (!is_admin()) {
+    $where[] = 'is_active = 1';
+}
 if ($cat !== '') {
     $where[] = 'category = ?';
     $params[] = $cat;
@@ -56,21 +60,22 @@ $products = $stmt->fetchAll();
 $brands = $db->query('SELECT brand, COUNT(*) AS c FROM products WHERE is_active = 1 GROUP BY brand ORDER BY c DESC LIMIT 12')->fetchAll();
 $featured = $db->query('SELECT * FROM products WHERE is_active = 1 ORDER BY sold DESC LIMIT 4')->fetchAll();
 $activeCat = $cat ? category_title($cat) : null;
+$filtersActive = $q || $brand || $priceMax || $onlyAvailable || $sort !== 'newest';
 ?>
 
 <?php if (!$cat && !$q && !$brand): ?>
   <section class="hero">
     <div class="hero-grid">
       <div>
-        <span class="hero-badge">🧾 صورتحساب الکترونیکی معتبر برای ممیزی مالیاتی</span>
-        <h1>خرید بی‌واسطه تجهیزات کارگاهی، نقشه‌برداری و اداری پروژه</h1>
+        <span class="hero-badge">🧾 هر سفارش با صورتحساب الکترونیکی رسمی</span>
+        <h1>تجهیزات مهندسی و دفتر فنی پروژه، با فاکتور رسمی</h1>
         <p>
-          از متر لیزری و تراز ۳۶۰ درجه تا رول پلاتر و تجهیزات HSE؛ همه با شناسه یکتای کالای سامانه مؤدیان،
-          اعتبار ارزش افزوده انتقال‌یافته به کارپوشه شما و ارسال به سراسر کشور.
+          متر و تراز لیزری، رول پلاتر، تجهیزات HSE و لوازم اداری؛ هر کالا با شناسه مالیاتی،
+          و هر سفارش با صورتحساب الکترونیکی در کارپوشه شما. ارسال به سراسر کشور.
         </p>
         <div class="hero-actions">
-          <a class="btn btn-primary" href="#catalog">مشاهده کاتالوگ کالاها</a>
-          <a class="btn btn-outline" href="index.php?page=rfq">درخواست پیش‌فاکتور سازمانی</a>
+          <a class="btn btn-primary" href="#catalog">مشاهده کالاها</a>
+          <a class="btn btn-outline" href="index.php?page=rfq">استعلام قیمت پروژه</a>
         </div>
       </div>
       <div class="hero-cards">
@@ -87,46 +92,46 @@ $activeCat = $cat ? category_title($cat) : null;
           <span>سفارش ثبت‌شده با فاکتور رسمی</span>
         </div>
         <div class="hero-card">
-          <strong>۲۴h</strong>
-          <span>پاسخ‌دهی به استعلام قیمت پروژه</span>
+          <strong>۲۴ ساعت</strong>
+          <span>پاسخ‌دهی کارشناسان به استعلام قیمت</span>
         </div>
       </div>
     </div>
   </section>
 
   <div class="trust-row">
-    <div class="trust-item"><span>🚚</span> ارسال رایگان سفارش‌های بالای <?= money_short(settings('free_shipping_min')) ?> تومان</div>
-    <div class="trust-item"><span>🧾</span> صدور صورتحساب نوع ۱ در همان لحظه ثبت سفارش</div>
-    <div class="trust-item"><span>🔁</span> امکان مرجوعی ۷ روزه اقلام سالم و بسته‌بندی‌نشده</div>
-    <div class="trust-item"><span>💳</span> پرداخت اعتباری و تسویه ۳۰ روزه برای پیمانکاران</div>
+    <div class="trust-item"><span>🚚</span> ارسال رایگان برای سفارش‌های بالای <?= money_short(settings('free_shipping_min')) ?> تومان</div>
+    <div class="trust-item"><span>🧾</span> صورتحساب نوع ۱ در همان لحظه ثبت سفارش</div>
+    <div class="trust-item"><span>🔁</span> بازگشت اقلام سالم و بسته‌بندی‌نشده تا ۷ روز</div>
+    <div class="trust-item"><span>💳</span> تسویه اعتباری ۳۰ روزه برای خریداران دارای سابقه</div>
   </div>
 <?php endif; ?>
 
 <div class="catalog-head" id="catalog">
   <div>
     <h2 class="sec-title"><?= $activeCat ? e($activeCat) : 'تجهیزات و ادوات مهندسی' ?></h2>
-    <p class="sec-sub">
-      <?= fa_num($total) ?> کالا یافت شد<?= $q ? ' برای «' . e($q) . '»' : '' ?>
-      <?= $onlyAvailable ? ' | فقط کالاهای موجود' : '' ?>
+    <p class="sec-sub" aria-live="polite">
+      <?= fa_num($total) ?> کالا<?= $q ? ' برای «' . e($q) . '»' : '' ?>
+      <?= $onlyAvailable ? ' · فقط کالاهای موجود' : '' ?>
     </p>
   </div>
-  <form class="filter-bar" method="GET" action="index.php">
+  <form class="filter-bar" method="GET" action="index.php" role="search">
     <input type="hidden" name="page" value="home">
     <?php if ($cat): ?><input type="hidden" name="cat" value="<?= e($cat) ?>"><?php endif; ?>
-    <input type="text" name="q" value="<?= e($q) ?>" placeholder="جست‌وجو…" class="filter-search">
-    <select name="brand">
+    <input type="search" name="q" value="<?= e($q) ?>" placeholder="نام کالا، برند یا شناسه…" class="filter-search" aria-label="جست‌وجو در کاتالوگ">
+    <select name="brand" aria-label="برند">
       <option value="">همه برندها</option>
       <?php foreach ($brands as $b): ?>
         <option value="<?= e($b['brand']) ?>" <?= $brand === $b['brand'] ? 'selected' : '' ?>><?= e($b['brand']) ?> (<?= fa_num($b['c']) ?>)</option>
       <?php endforeach; ?>
     </select>
-    <select name="price_max">
+    <select name="price_max" aria-label="محدوده قیمت">
       <option value="">هر قیمتی</option>
       <?php foreach ([2000000, 5000000, 10000000, 20000000] as $cap): ?>
         <option value="<?= $cap ?>" <?= $priceMax === $cap ? 'selected' : '' ?>>تا <?= money_short($cap) ?> تومان</option>
       <?php endforeach; ?>
     </select>
-    <select name="sort">
+    <select name="sort" aria-label="مرتب‌سازی">
       <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>>جدیدترین</option>
       <option value="popular" <?= $sort === 'popular' ? 'selected' : '' ?>>پرفروش‌ترین</option>
       <option value="price_asc" <?= $sort === 'price_asc' ? 'selected' : '' ?>>ارزان‌ترین</option>
@@ -135,19 +140,24 @@ $activeCat = $cat ? category_title($cat) : null;
     <label class="check-inline">
       <input type="checkbox" name="available" value="1" <?= $onlyAvailable ? 'checked' : '' ?>> فقط موجود
     </label>
-    <button class="btn btn-primary btn-sm" type="submit">اعمال فیلتر</button>
-    <?php if ($q || $brand || $priceMax || $onlyAvailable || $sort !== 'newest'): ?>
-      <a class="btn btn-secondary btn-sm" href="index.php?page=home<?= $cat ? '&cat=' . e($cat) : '' ?>">حذف فیلترها</a>
+    <button class="btn btn-primary btn-sm" type="submit">اعمال</button>
+    <?php if ($filtersActive): ?>
+      <a class="btn btn-secondary btn-sm" href="index.php?page=home<?= $cat ? '&cat=' . e($cat) : '' ?>">پاک‌کردن فیلترها</a>
     <?php endif; ?>
   </form>
 </div>
 
 <?php if (!$products): ?>
   <div class="empty-state">
-    <span>🔍</span>
+    <span aria-hidden="true">🔍</span>
     <h3>کالایی با این مشخصات پیدا نشد</h3>
-    <p>می‌توانید فیلترها را تغییر دهید یا نیاز پروژه خود را در قالب استعلام قیمت ثبت کنید تا کارشناسان ما تأمین کنند.</p>
-    <a class="btn btn-orange" href="index.php?page=rfq">ثبت استعلام قیمت</a>
+    <p>عبارت جست‌وجو یا فیلترها را تغییر دهید، یا نیاز پروژه‌تان را به‌صورت استعلام قیمت ثبت کنید تا کارشناسان ما تأمین کنند.</p>
+    <div class="flex-center gap-10 wrap">
+      <?php if ($filtersActive): ?>
+        <a class="btn btn-secondary" href="index.php?page=home<?= $cat ? '&cat=' . e($cat) : '' ?>">پاک‌کردن فیلترها</a>
+      <?php endif; ?>
+      <a class="btn btn-orange" href="index.php?page=rfq">ثبت استعلام قیمت</a>
+    </div>
   </div>
 <?php else: ?>
   <div class="pro-grid">
@@ -157,24 +167,31 @@ $activeCat = $cat ? category_title($cat) : null;
   </div>
 
   <?php if ($pg['pages'] > 1): ?>
-    <nav class="pagination">
+    <nav class="pagination" aria-label="صفحات کاتالوگ">
+      <?php if ($pg['current'] > 1): ?>
+        <a class="page-item page-nav" rel="prev" href="<?= e(page_link('home', ['p' => $pg['current'] - 1])) ?>">قبلی</a>
+      <?php endif; ?>
       <?php for ($i = 1; $i <= $pg['pages']; $i++): ?>
-        <a class="page-item <?= $i === $pg['current'] ? 'active' : '' ?>" href="<?= e(page_link('home', ['p' => $i])) ?>"><?= fa_num($i) ?></a>
+        <a class="page-item <?= $i === $pg['current'] ? 'active' : '' ?>" href="<?= e(page_link('home', ['p' => $i])) ?>"<?= $i === $pg['current'] ? ' aria-current="page"' : '' ?>><?= fa_num($i) ?></a>
       <?php endfor; ?>
+      <?php if ($pg['current'] < $pg['pages']): ?>
+        <a class="page-item page-nav" rel="next" href="<?= e(page_link('home', ['p' => $pg['current'] + 1])) ?>">بعدی</a>
+      <?php endif; ?>
     </nav>
   <?php endif; ?>
+  <p class="pg-summary">نمایش <?= fa_num($pg['from']) ?> تا <?= fa_num($pg['to']) ?> از <?= fa_num($pg['total']) ?> کالا</p>
 <?php endif; ?>
 
 <?php if (!$cat && !$q): ?>
   <section class="sec-block">
     <div class="sec-head">
-      <h2 class="sec-title">پرفروش‌ترین‌های سه ماه گذشته</h2>
+      <h2 class="sec-title">پرفروش‌ترین کالاها</h2>
       <a class="link-more" href="<?= e(page_link('home', ['sort' => 'popular', 'p' => 1])) ?>">مشاهده همه ←</a>
     </div>
     <div class="mini-grid">
       <?php foreach ($featured as $f): ?>
         <a class="mini-card" href="<?= product_url($f['id']) ?>">
-          <span class="mini-ico"><?= e($f['icon']) ?></span>
+          <span class="mini-ico" aria-hidden="true"><?= e($f['icon']) ?></span>
           <div>
             <strong><?= e($f['name']) ?></strong>
             <small><?= e($f['brand']) ?> • فروش <?= fa_num($f['sold']) ?> <?= e($f['unit']) ?></small>
@@ -194,7 +211,7 @@ $activeCat = $cat ? category_title($cat) : null;
           $cnt = $db->prepare('SELECT COUNT(*) FROM products WHERE category = ? AND is_active = 1');
           $cnt->execute([$c['slug']]); ?>
         <a class="cat-card" href="index.php?page=home&cat=<?= e($c['slug']) ?>">
-          <span><?= e($c['icon']) ?></span>
+          <span aria-hidden="true"><?= e($c['icon']) ?></span>
           <strong><?= e($c['title']) ?></strong>
           <small><?= fa_num($cnt->fetchColumn()) ?> کالا</small>
         </a>
@@ -204,8 +221,8 @@ $activeCat = $cat ? category_title($cat) : null;
 
   <section class="cta-band">
     <div>
-      <h3>خریدار سازمانی هستید و نیاز به پیش‌فاکتور رسمی دارید؟</h3>
-      <p>با ثبت استعلام پروژه، فهرست اقلام و مقادیر را ارسال کنید؛ کارشناسان ما با اعمال تخفیف سازمانی، پیش‌فاکتور رسمی صادر می‌کنند.</p>
+      <h3>برای پروژه‌تان پیش‌فاکتور رسمی لازم دارید؟</h3>
+      <p>فهرست اقلام و مقادیر را ثبت کنید؛ کارشناسان تدارکات با اعمال تخفیف سازمانی، پیش‌فاکتور رسمی با شناسه مالیاتی صادر می‌کنند.</p>
     </div>
     <a class="btn btn-orange btn-lg" href="index.php?page=rfq">ثبت استعلام قیمت پروژه</a>
   </section>

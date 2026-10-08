@@ -11,6 +11,7 @@ $unread = $me ? unread_notifications($me['id']) : 0;
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0A1128">
   <title><?= e($pageTitle) ?> | <?= e(settings('site_name', 'پارس سازه و آفیس')) ?></title>
   <meta name="description" content="خرید آنلاین تجهیزات نقشه‌برداری، ایمنی کارگاهی، رول پلاتر و ملزومات دفاتر فنی با صورتحساب الکترونیکی معتبر سامانه مؤدیان.">
   <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
@@ -18,9 +19,11 @@ $unread = $me ? unread_notifications($me['id']) : 0;
 </head>
 <body>
 
+<a class="skip-link" href="#main">رفتن به محتوای اصلی</a>
+
 <div class="top-bar no-print">
   <div class="container flex-between">
-    <div class="top-links">
+    <div class="top-links hide-md">
       <a href="index.php?page=home">کاتالوگ تجهیزات</a>
       <a href="index.php?page=rfq">استعلام پروژه (RFQ)</a>
       <a href="index.php?page=track">پیگیری سفارش</a>
@@ -50,11 +53,14 @@ $unread = $me ? unread_notifications($me['id']) : 0;
       </div>
     </a>
 
-    <form class="header-search hide-md" method="GET" action="index.php">
-      <input type="hidden" name="page" value="home">
-      <input type="text" name="q" value="<?= e(get('q')) ?>" placeholder="جست‌وجوی کالا، برند یا شناسه مالیاتی…">
-      <button type="submit" aria-label="جست‌وجو">🔍</button>
-    </form>
+    <div class="search-wrap">
+      <form class="header-search" method="GET" action="index.php" role="search">
+        <input type="hidden" name="page" value="home">
+        <label class="visually-hidden" for="site-search">جست‌وجوی کالا</label>
+        <input id="site-search" type="search" name="q" value="<?= e(get('q')) ?>" placeholder="جست‌وجوی کالا، برند یا شناسه مالیاتی…" autocomplete="off">
+        <button type="submit" aria-label="جست‌وجو">🔍</button>
+      </form>
+    </div>
 
     <div class="header-actions">
       <?php if ($me): ?>
@@ -62,7 +68,7 @@ $unread = $me ? unread_notifications($me['id']) : 0;
           <summary class="btn btn-secondary">
             <span class="avatar-tag"><?= e(initials($me['company'] ?: $me['name'])) ?></span>
             <span class="hide-sm"><?= e($me['role'] === 'admin' ? 'پنل مدیریت' : 'پنل خریدار') ?></span>
-            <?php if ($unread): ?><span class="dot-badge"><?= fa_num($unread) ?></span><?php endif; ?>
+            <?php if ($unread): ?><span class="dot-badge" aria-label="<?= fa_num($unread) ?> اعلان خوانده‌نشده"><?= fa_num($unread) ?></span><?php endif; ?>
           </summary>
           <div class="drop-menu">
             <div class="drop-head">
@@ -92,14 +98,14 @@ $unread = $me ? unread_notifications($me['id']) : 0;
         <a href="index.php?page=register" class="btn btn-outline hide-sm">ثبت‌نام خریدار سازمانی</a>
       <?php endif; ?>
 
-      <a href="index.php?page=cart" class="btn btn-primary">
-        🛒 سبد سفارش <span class="badge-count"><?= fa_num($cartCount) ?></span>
+      <a href="index.php?page=cart" class="btn btn-primary cart-btn" aria-label="سبد سفارش، <?= fa_num($cartCount) ?> قلم">
+        🛒 <span class="hide-sm">سبد سفارش</span> <span class="badge-count"><?= fa_num($cartCount) ?></span>
       </a>
     </div>
   </div>
 </header>
 
-<nav class="nav no-print">
+<nav class="nav no-print" aria-label="دسته‌بندی کالاها">
   <div class="container nav-scroll">
     <a class="nav-link <?= $currentPage === 'home' && !get('cat') ? 'active' : '' ?>" href="index.php?page=home">همه تجهیزات</a>
     <?php foreach ($navCategories as $cat): ?>
@@ -107,14 +113,18 @@ $unread = $me ? unread_notifications($me['id']) : 0;
         <?= e($cat['icon']) ?> <?= e($cat['title']) ?>
       </a>
     <?php endforeach; ?>
-    <a class="nav-link rfq" href="index.php?page=rfq">📋 استعلام پیش‌فاکتور رسمی (RFQ)</a>
+    <a class="nav-link <?= $currentPage === 'track' ? 'active' : '' ?>" href="index.php?page=track">🔎 پیگیری سفارش</a>
+    <a class="nav-link rfq" href="index.php?page=rfq">📋 استعلام قیمت پروژه</a>
   </div>
 </nav>
 
 <?php if (!empty($flashes)): ?>
-  <div class="toast-wrap no-print">
+  <div class="toast-wrap no-print" aria-live="polite">
     <?php foreach ($flashes as $f): ?>
-      <div class="toast-bar <?= e($f['type']) ?>"><?= $f['message'] ?></div>
+      <div class="toast-bar <?= e($f['type']) ?>" role="status">
+        <span class="toast-text"><?= e($f['message']) ?></span>
+        <button type="button" class="toast-close" aria-label="بستن پیام">×</button>
+      </div>
     <?php endforeach; ?>
   </div>
 <?php endif; ?>
@@ -125,4 +135,4 @@ $unread = $me ? unread_notifications($me['id']) : 0;
   </div>
 <?php endif; ?>
 
-<div class="container page-wrapper">
+<div class="container page-wrapper" id="main" tabindex="-1">

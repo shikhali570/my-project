@@ -1,0 +1,9 @@
+# Deny every direct request to this folder (Apache / LiteSpeed).
+# The folder holds PHP session files and temporary data only.
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Deny from all
+</IfModule>

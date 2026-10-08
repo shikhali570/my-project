@@ -36,48 +36,33 @@ switch ($act) {
         }
         if ($inCart + $qty > (int)$p['stock']) {
             $qty = max(1, (int)$p['stock'] - $inCart);
-            flash('موجودی کافی نیست؛ حداکثر ' . fa_num($p['stock']) . ' ' . $p['unit'] . ' از این کالا قابل سفارش است.', 'error');
+            flash('بیشتر از موجودی انبار امکان افزودن نیست. حداکثر ' . fa_num($p['stock']) . ' ' . e($p['unit']) . ' قابل سفارش است.', 'error');
         }
         $_SESSION['cart'][$pid] = $inCart + $qty;
         flash('«' . $p['name'] . '» به سبد سفارش اضافه شد.', 'success');
-        redirect(safe_local_url(post('redirect'), 'index.php?page=cart'));
+        redirect(post('redirect') ?: 'index.php?page=cart');
     }
 
     case 'cart_update': {
         $pid = (int)post('id');
         $op = post('op');
         if (isset($_SESSION['cart'][$pid])) {
-            $current = (int)$_SESSION['cart'][$pid];
-            $stmt = $db->prepare('SELECT name, unit, stock FROM products WHERE id = ?');
-            $stmt->execute([$pid]);
-            $prod = $stmt->fetch();
-            $stock = $prod ? (int)$prod['stock'] : 0;
-            $name = $prod ? $prod['name'] : 'این کالا';
-
-            if ($op === 'del') {
+            if ($op === 'inc') {
+                $_SESSION['cart'][$pid]++;
+            } elseif ($op === 'dec') {
+                $_SESSION['cart'][$pid]--;
+                if ($_SESSION['cart'][$pid] <= 0) {
+                    unset($_SESSION['cart'][$pid]);
+                }
+            } elseif ($op === 'del') {
                 unset($_SESSION['cart'][$pid]);
                 flash('کالا از سبد سفارش حذف شد.', 'info');
-            } elseif ($op === 'dec') {
-                if ($current <= 1) {
+            } elseif ($op === 'set') {
+                $q = (int)en_digits(post('qty', '1'));
+                if ($q <= 0) {
                     unset($_SESSION['cart'][$pid]);
-                    flash('کالا از سبد سفارش حذف شد.', 'info');
                 } else {
-                    $_SESSION['cart'][$pid] = $current - 1;
-                }
-            } elseif ($op === 'inc' || $op === 'set') {
-                $rawQty = en_digits(post('qty', ''));
-                // فیلد خالی یا غیرعددی یعنی «بدون تغییر»؛ صفر یعنی حذف کالا
-                $wanted = $op === 'inc' ? $current + 1 : (ctype_digit($rawQty) ? (int)$rawQty : $current);
-                if ($wanted <= 0) {
-                    unset($_SESSION['cart'][$pid]);
-                    flash('کالا از سبد سفارش حذف شد.', 'info');
-                } elseif ($stock <= 0) {
-                    flash('«' . $name . '» در حال حاضر ناموجود است؛ تعداد آن تغییر نکرد.', 'error');
-                } elseif ($wanted > $stock) {
-                    $_SESSION['cart'][$pid] = $stock;
-                    flash('موجودی کافی نیست؛ حداکثر ' . fa_num($stock) . ' ' . $prod['unit'] . ' از «' . $name . '» قابل سفارش است.', 'error');
-                } else {
-                    $_SESSION['cart'][$pid] = $wanted;
+                    $_SESSION['cart'][$pid] = $q;
                 }
             }
         }
@@ -117,67 +102,45 @@ switch ($act) {
             redirect('index.php?page=cart');
         }
 
-        // ورودی‌ها را نگه می‌داریم تا پس از خطا، کاربر دوباره تایپ نکند
-        $input = [
-            'customer_name' => post('customer_name'),
-            'company' => post('company'),
-            'phone' => post('phone'),
-            'tax_id' => post('tax_id'),
-            'province' => post('province'),
-            'city' => post('city'),
-            'address' => post('address'),
-            'payment_method' => post('payment_method'),
-            'note' => post('note'),
-        ];
-        $customer = $input['customer_name'];
-        $company = $input['company'];
-        $phone = en_digits($input['phone']);
-        $taxId = en_digits($input['tax_id']);
-        $province = $input['province'];
-        $city = $input['city'];
-        $address = $input['address'];
-        $note = $input['note'];
+        $customer = post('customer_name');
+        $company = post('company');
+        $phone = en_digits(post('phone'));
         $email = post('email');
-        $u = current_user();
-
-        // فقط روش‌های شناخته‌شده پذیرفته می‌شوند
-        $paymentMethod = in_array($input['payment_method'], ['transfer', 'credit', 'wallet'], true)
-            ? $input['payment_method']
-            : 'transfer';
+        $taxId = en_digits(post('tax_id'));
+        $province = post('province');
+        $city = post('city');
+        $address = post('address');
+        $note = post('note');
+        $paymentMethod = post('payment_method', 'transfer');
 
         $errors = [];
         if (mb_strlen($customer) < 3) {
-            $errors['customer_name'] = 'نام رابط خرید را کامل وارد کنید (حداقل ۳ حرف).';
+            $errors[] = 'نام رابط خرید را کامل وارد کنید.';
         }
         if (!valid_phone($phone)) {
-            $errors['phone'] = 'شماره همراه معتبر نیست؛ ۱۱ رقم و با ۰۹ شروع شود.';
+            $errors[] = 'شماره تماس معتبر نیست (۱۱ رقم با پیش‌شماره ۰۹).';
         }
         if (mb_strlen($address) < 10) {
-            $errors['address'] = 'نشانی تحویل را کامل‌تر وارد کنید (شامل خیابان و پلاک).';
-        }
-        if ($paymentMethod === 'wallet') {
-            if (!$u) {
-                $errors['payment_method'] = 'برای پرداخت از اعتبار کارپوشه، ابتدا وارد حساب خریدار شوید.';
-            } elseif ((int)$u['credit'] < $totals['total']) {
-                $errors['payment_method'] = 'اعتبار کارپوشه شما (' . money($u['credit']) . ') برای پرداخت این سفارش کافی نیست.';
-            }
+            $errors[] = 'نشانی تحویل کالا را کامل‌تر وارد کنید.';
         }
 
         // کنترل موجودی انبار
         foreach ($totals['items'] as $it) {
             if ($it['qty'] > (int)$it['stock']) {
-                $errors['stock_' . $it['id']] = 'موجودی «' . $it['name'] . '» کافی نیست (موجودی فعلی: ' . fa_num($it['stock']) . ' ' . $it['unit'] . ').';
+                $errors[] = 'موجودی «' . $it['name'] . '» کافی نیست (موجودی فعلی: ' . fa_num($it['stock']) . ').';
             }
         }
 
         if ($errors) {
-            remember_form('checkout', $input, $errors);
-            flash('ثبت سفارش انجام نشد؛ لطفاً موارد مشخص‌شده را اصلاح کنید.', 'error');
-            redirect('index.php?page=cart#checkout');
+            foreach ($errors as $err) {
+                flash($err, 'error');
+            }
+            redirect('index.php?page=cart');
         }
 
         $orderNo = next_order_no($db);
         $now = date('Y-m-d H:i:s');
+        $u = current_user();
 
         $stmt = $db->prepare('INSERT INTO orders (order_no, user_id, customer_name, company, phone, email, tax_id, province, city, address, note, subtotal, discount, tax_amount, shipping, total, coupon_code, status, payment_status, payment_method, created_at, updated_at)
                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
@@ -214,7 +177,7 @@ switch ($act) {
         ]);
 
         $_SESSION['cart'] = [];
-        unset($_SESSION['coupon'], $_SESSION['form_state']['checkout']);
+        unset($_SESSION['coupon']);
 
         if ($u) {
             notify($u['id'], 'سفارش ' . $orderNo . ' ثبت شد', 'سفارش شما با مبلغ ' . money($totals['total']) . ' ثبت شد و صورتحساب الکترونیکی آن صادر گردید. وضعیت آماده‌سازی را از پنل پیگیری کنید.', 'index.php?page=panel_order&no=' . $orderNo);
@@ -258,35 +221,18 @@ switch ($act) {
             $db->prepare('INSERT INTO favorites (user_id, product_id, created_at) VALUES (?, ?, ?)')->execute([user_id(), $pid, date('Y-m-d H:i:s')]);
             flash('کالا به علاقه‌مندی‌ها اضافه شد.', 'success');
         }
-        redirect(safe_local_url(post('redirect'), 'index.php?page=panel_favorites'));
+        redirect(post('redirect') ?: 'index.php?page=panel_favorites');
     }
 
     // ================================================== استعلام قیمت
     case 'rfq_submit': {
-        $input = [
-            'company' => post('company'),
-            'phone' => post('phone'),
-            'title' => post('title'),
-            'description' => post('description'),
-        ];
-        $company = $input['company'];
-        $phone = en_digits($input['phone']);
-        $title = $input['title'];
-        $desc = $input['description'];
+        $company = post('company');
+        $phone = en_digits(post('phone'));
+        $title = post('title');
+        $desc = post('description');
 
-        $errors = [];
-        if (mb_strlen($company) < 3) {
-            $errors['company'] = 'نام شرکت یا پیمانکار را کامل وارد کنید (حداقل ۳ حرف).';
-        }
-        if (!valid_phone($phone)) {
-            $errors['phone'] = 'شماره همراه معتبر نیست؛ ۱۱ رقم و با ۰۹ شروع شود.';
-        }
-        if (mb_strlen($desc) < 10) {
-            $errors['description'] = 'شرح اقلام را کامل‌تر بنویسید؛ مثلاً نام کالا، مشخصات و تعداد (حداقل ۱۰ حرف).';
-        }
-        if ($errors) {
-            remember_form('rfq', $input, $errors);
-            flash('لطفاً موارد مشخص‌شده را اصلاح کنید.', 'error');
+        if (mb_strlen($company) < 3 || !valid_phone($phone) || mb_strlen($desc) < 10) {
+            flash('لطفاً همه موارد استعلام را به‌درستی تکمیل فرمایید (شرح درخواست حداقل ۱۰ کاراکتر).', 'error');
             redirect('index.php?page=rfq');
         }
 

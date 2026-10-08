@@ -41,7 +41,7 @@
   <div class="footer-bottom">
     <div class="container flex-between">
       <span>© <?= fa_num(jyear()) ?> تمامی حقوق مادی و معنوی برای «<?= e(settings('site_name')) ?>» محفوظ است.</span>
-      <span>نسخه <?= fa_text(APP_VERSION) ?> | متصل به وب‌سرویس پایانه فروشگاهی و سامانه مؤدیان</span>
+      <span>نسخه <?= fa_num(APP_VERSION) ?> | متصل به وب‌سرویس پایانه فروشگاهی و سامانه مؤدیان</span>
     </div>
   </div>
 </footer>

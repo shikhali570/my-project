@@ -15,14 +15,9 @@ if ($authAction === 'login') {
     $phone = en_digits(post('phone'));
     $password = (string)($_POST['password'] ?? '');
 
-    // بازگشت به صفحه ورود با حفظ شماره و مقصد (next)
-    $nextParam = get('next');
-    $loginBack = 'index.php?page=login' . (preg_match('/^[a-z_]+$/', $nextParam) ? '&next=' . $nextParam : '');
-
     if (!valid_phone($phone) || $password === '') {
-        remember_form('login', ['phone' => post('phone')], []);
         flash('شماره همراه یا گذرواژه نامعتبر است.', 'error');
-        redirect($loginBack);
+        redirect('index.php?page=login');
     }
 
     $stmt = $db->prepare('SELECT * FROM users WHERE phone = ?');
@@ -31,15 +26,13 @@ if ($authAction === 'login') {
 
     if (!$user || empty($user['password_hash']) || !password_verify($password, $user['password_hash'])) {
         log_action('login_failed', 'user', null, 'تلاش ناموفق ورود با شماره ' . $phone);
-        remember_form('login', ['phone' => post('phone')], []);
         flash('شماره همراه یا گذرواژه اشتباه است.', 'error');
-        redirect($loginBack);
+        redirect('index.php?page=login');
     }
 
     if ($user['status'] !== 'active') {
-        remember_form('login', ['phone' => post('phone')], []);
         flash('حساب کاربری شما غیرفعال است. با پشتیبانی تماس بگیرید.', 'error');
-        redirect($loginBack);
+        redirect('index.php?page=login');
     }
 
     // ارتقای خودکار هش در صورت نیاز

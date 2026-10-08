@@ -1,17 +1,11 @@
 <?php
 /** ورود به حساب (خریدار و مدیر) */
 $next = get('next');
-
-// پس از ورود ناموفق، شماره همراه نگه داشته می‌شود
-$formState = take_form_state('login');
-$phoneValue = array_key_exists('phone', $formState['old'])
-    ? (string)$formState['old']['phone']
-    : (string)get('phone');
 ?>
 <div class="auth-layout">
   <div class="auth-card-full">
     <div class="auth-head">
-      <div class="logo-icon" aria-hidden="true">🏗️</div>
+      <div class="logo-icon">🏗️</div>
       <div>
         <h1>ورود به کارپوشه خرید سازمانی</h1>
         <p>با شماره همراه و گذرواژه خود وارد شوید. مدیران سیستم به پنل مدیریت هدایت می‌شوند.</p>
@@ -21,28 +15,23 @@ $phoneValue = array_key_exists('phone', $formState['old'])
     <form method="POST" action="index.php<?= $next ? '?next=' . e($next) : '' ?>" class="auth-form">
       <?= csrf_field() ?>
       <input type="hidden" name="auth_action" value="login">
-
       <div class="input-group">
-        <label for="l-phone">شماره همراه <span class="req" aria-hidden="true">*</span></label>
-        <input id="l-phone" type="tel" name="phone" required maxlength="11" inputmode="numeric" autocomplete="username" dir="ltr"
-               placeholder="09121111111" value="<?= e($phoneValue) ?>"<?= $phoneValue === '' ? ' autofocus' : '' ?>>
+        <label>شماره تلفن همراه *</label>
+        <input type="text" name="phone" required maxlength="11" inputmode="numeric" placeholder="۰۹۱۲۱۱۱۱۱۱۱" value="<?= e(get('phone')) ?>">
       </div>
-
       <div class="input-group">
-        <label for="l-pass">گذرواژه <span class="req" aria-hidden="true">*</span></label>
-        <input id="l-pass" type="password" name="password" required autocomplete="current-password" placeholder="••••••••"<?= $phoneValue !== '' ? ' autofocus' : '' ?>>
+        <label>گذرواژه *</label>
+        <input type="password" name="password" required placeholder="••••••••">
       </div>
-
-      <button type="submit" class="btn btn-primary btn-lg btn-block">ورود به حساب</button>
-
+      <button type="submit" class="btn btn-primary btn-lg" style="width:100%">ورود به حساب</button>
       <div class="auth-links">
         <span>حساب کاربری ندارید؟ <a href="index.php?page=register">ثبت‌نام خریدار سازمانی</a></span>
         <a href="index.php?page=contact">فراموشی گذرواژه / پشتیبانی</a>
       </div>
     </form>
 
-    <details class="demo-box">
-      <summary><strong>🔐 حساب‌های نمایشی برای تست پنل‌ها</strong> <span class="muted">(برای آزمایش)</span></summary>
+    <div class="demo-box">
+      <strong>🔐 حساب‌های نمایشی برای تست پنل‌ها</strong>
       <div class="demo-grid">
         <div class="demo-item">
           <span class="pill primary">مدیر سیستم</span>
@@ -57,7 +46,7 @@ $phoneValue = array_key_exists('phone', $formState['old'])
           <button type="button" class="btn btn-secondary btn-sm" data-fill-phone="09121111111" data-fill-pass="buyer1234">درج خودکار</button>
         </div>
       </div>
-    </details>
+    </div>
   </div>
 
   <aside class="auth-side">

@@ -25,10 +25,9 @@ $currentIdx = array_search($order['status'] ?? '', $steps, true);
 <div class="track-box">
   <h1 class="sec-title">پیگیری سفارش و صورتحساب</h1>
   <p class="sec-sub">شماره سفارش (مثلاً PSA-2509-0001) یا کد رهگیری مرسوله را وارد کنید.</p>
-  <form class="track-form" method="GET" action="index.php" role="search">
+  <form class="track-form" method="GET" action="index.php">
     <input type="hidden" name="page" value="track">
-    <label class="visually-hidden" for="track-no">شماره سفارش یا کد رهگیری</label>
-    <input id="track-no" type="text" name="no" value="<?= e($q) ?>" placeholder="شماره سفارش یا کد رهگیری مرسوله" required autocomplete="off" dir="ltr">
+    <input type="text" name="no" value="<?= e($q) ?>" placeholder="شماره سفارش یا کد رهگیری مرسوله" required>
     <button class="btn btn-primary" type="submit">🔍 پیگیری</button>
   </form>
 
@@ -48,13 +47,11 @@ $currentIdx = array_search($order['status'] ?? '', $steps, true);
     </div>
 
     <?php if ($order['status'] !== 'canceled'): ?>
-      <div class="timeline" aria-label="مراحل سفارش">
-        <?php foreach ($steps as $i => $s):
-            $isCurrent = $currentIdx !== false && $i === $currentIdx;
-            $isDone = $currentIdx !== false && $i <= $currentIdx; ?>
-          <div class="tl-step<?= $isDone ? ' done' : '' ?><?= $isCurrent ? ' current' : '' ?>"<?= $isCurrent ? ' aria-current="step"' : '' ?>>
-            <div class="tl-dot" aria-hidden="true"><?= order_status_icon($s) ?></div>
-            <div class="tl-label"><?= e(order_status_label($s)) ?><?= $isCurrent ? ' <span class="visually-hidden">(مرحله فعلی)</span>' : '' ?></div>
+      <div class="timeline">
+        <?php foreach ($steps as $i => $s): ?>
+          <div class="tl-step <?= $currentIdx !== false && $i <= $currentIdx ? 'done' : '' ?>">
+            <div class="tl-dot"><?= order_status_icon($s) ?></div>
+            <div class="tl-label"><?= e(order_status_label($s)) ?></div>
           </div>
         <?php endforeach; ?>
       </div>
@@ -66,7 +63,7 @@ $currentIdx = array_search($order['status'] ?? '', $steps, true);
       <div>
         <h4 class="sub-title">اقلام سفارش</h4>
         <table class="data-table">
-          <thead><tr><th scope="col">کالا</th><th scope="col">تعداد</th><th scope="col">مبلغ</th></tr></thead>
+          <thead><tr><th>کالا</th><th>تعداد</th><th>مبلغ</th></tr></thead>
           <tbody>
             <?php foreach ($rows as $r): ?>
               <tr><td><?= e($r['name']) ?><div class="mini-note mono"><?= e($r['tax_id']) ?></div></td><td><?= fa_num($r['qty']) ?></td><td><?= money($r['total']) ?></td></tr>

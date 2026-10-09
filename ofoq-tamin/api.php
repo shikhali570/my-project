@@ -68,7 +68,7 @@ switch ($do) {
             json_out(['ok' => true, 'items' => []]);
         }
         $like = '%' . $q . '%';
-        $stmt = $db->prepare('SELECT id, name, brand, price, icon, stock, unit FROM products
+        $stmt = $db->prepare('SELECT id, name, brand, price, icon, image, stock, unit FROM products
                               WHERE is_active = 1 AND (name LIKE ? OR brand LIKE ? OR tax_id LIKE ? OR sku LIKE ?)
                               ORDER BY sold DESC LIMIT 8');
         $stmt->execute([$like, $like, $like, $like]);
@@ -80,6 +80,7 @@ switch ($do) {
                 'brand' => $p['brand'],
                 'price' => money($p['price']),
                 'icon' => $p['icon'],
+                'image' => product_image_src($p['image']),
                 'available' => (int)$p['stock'] > 0,
                 'url' => product_url($p['id']),
             ];

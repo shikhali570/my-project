@@ -18,6 +18,15 @@ if ($id) {
     }
     $p = $row;
 }
+$formState = take_form_state('product');
+$formOld = $formState['old'] ?? [];
+$formErrors = $formState['errors'] ?? [];
+foreach (array_keys($p) as $field) {
+    if (array_key_exists($field, $formOld)) {
+        $p[$field] = $formOld[$field];
+    }
+}
+$removeChecked = ($formOld['remove_image'] ?? '') === '1';
 $isEdit = (bool)$id;
 $icons = ['📦', '📏', '📐', '🔭', '⛑️', '🦺', '🥾', '🖨️', '📜', '🖋️', '📁', '🗂️', '💡', '🔌', '🔧', '🛠️', '🧰', '🧱', '⚙️', '🔩'];
 ?>
@@ -30,7 +39,7 @@ $icons = ['📦', '📏', '📐', '🔭', '⛑️', '🦺', '🥾', '🖨️', '
   <a class="btn btn-secondary btn-sm" href="index.php?page=admin_products">← بازگشت به فهرست</a>
 </div>
 
-<form method="POST" action="index.php" class="card">
+<form method="POST" action="index.php" class="card" enctype="multipart/form-data">
   <?= csrf_field() ?>
   <input type="hidden" name="action" value="product_save">
   <input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
@@ -107,19 +116,33 @@ $icons = ['📦', '📏', '📐', '🔭', '⛑️', '🦺', '🥾', '🖨️', '
     <h3 class="card-title">تصویر و توضیحات</h3>
     <div class="grid-2">
       <div class="input-group">
-        <label>نشانی تصویر کالا (URL — اختیاری)</label>
-        <input type="text" name="image" value="<?= e($p['image']) ?>" placeholder="https://example.com/product.jpg">
+        <label for="pf-image-file">آپلود تصویر کالا <small class="mini-note">(JPG، PNG یا WebP؛ حداکثر ۵ مگابایت)</small></label>
+        <input id="pf-image-file" type="file" name="image_file" accept="image/jpeg,image/png,image/webp" aria-describedby="pf-image-help"<?= $formErrors && !empty($formErrors['image_file']) ? ' class="is-invalid" aria-invalid="true"' : '' ?>>
+        <?= field_error($formErrors, 'image_file') ?>
+        <small id="pf-image-help" class="mini-note">تصویر آپلودشده جایگزین نشانی تصویر می‌شود و نام فایل به‌صورت تصادفی ذخیره می‌شود.</small>
       </div>
       <div class="input-group">
-        <label>آیکن کالا (در صورت نبود تصویر)</label>
-        <div class="icon-picker">
-          <?php foreach ($icons as $ic): ?>
-            <label class="icon-opt">
-              <input type="radio" name="icon" value="<?= e($ic) ?>" <?= $p['icon'] === $ic ? 'checked' : '' ?>>
-              <span><?= e($ic) ?></span>
-            </label>
-          <?php endforeach; ?>
-        </div>
+        <label for="pf-image-url">نشانی تصویر (اختیاری)</label>
+        <input id="pf-image-url" type="text" name="image" value="<?= e($p['image']) ?>" placeholder="https://example.com/product.jpg"<?= field_invalid_attr($formErrors, 'image') ?>>
+        <?= field_error($formErrors, 'image') ?>
+      </div>
+    </div>
+    <?php $currentImage = product_image_src($p['image']); ?>
+    <?php if ($currentImage !== ''): ?>
+      <div class="product-image-current">
+        <img src="<?= e($currentImage) ?>" alt="تصویر فعلی کالا" width="120" height="120">
+        <label class="check-line"><input type="checkbox" name="remove_image" value="1"<?= $removeChecked ? ' checked' : '' ?>> حذف تصویر فعلی</label>
+      </div>
+    <?php endif; ?>
+    <div class="input-group">
+      <label>آیکن کالا (وقتی تصویر ندارد نمایش داده می‌شود)</label>
+      <div class="icon-picker">
+        <?php foreach ($icons as $ic): ?>
+          <label class="icon-opt">
+            <input type="radio" name="icon" value="<?= e($ic) ?>" <?= $p['icon'] === $ic ? 'checked' : '' ?>>
+            <span><?= e($ic) ?></span>
+          </label>
+        <?php endforeach; ?>
       </div>
     </div>
     <div class="input-group">

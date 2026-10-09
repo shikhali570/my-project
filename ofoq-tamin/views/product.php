@@ -32,8 +32,9 @@ $relatedRows = $related->fetchAll();
 <div class="product-layout">
   <div class="product-visual">
     <div class="product-image">
-      <?php if (!empty($p['image'])): ?>
-        <img src="<?= e($p['image']) ?>" alt="<?= e($p['name']) ?>">
+      <?php $imgSrc = product_image_src($p['image']); ?>
+      <?php if ($imgSrc !== ''): ?>
+        <img src="<?= e($imgSrc) ?>" alt="<?= e($p['name']) ?>">
       <?php else: ?>
         <span aria-hidden="true"><?= e($p['icon']) ?></span>
       <?php endif; ?>

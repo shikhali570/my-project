@@ -53,9 +53,10 @@ $monthTax = (int)$db->query("SELECT COALESCE(SUM(tax_amount),0) FROM invoices WH
     </form>
   </div>
 
+  <div class="table-wrap">
   <table class="data-table">
     <thead>
-      <tr><th>شماره فاکتور</th><th>شناسه یکتای مالیاتی</th><th>خریدار</th><th>سفارش</th><th>تاریخ</th><th>خالص</th><th>ارزش افزوده</th><th>مبلغ کل</th><th></th></tr>
+      <tr><th>شماره فاکتور</th><th>شناسه یکتای مالیاتی</th><th>خریدار</th><th>سفارش</th><th>تاریخ</th><th>جمع اقلام</th><th>ارزش افزوده</th><th>مبلغ کل</th><th></th></tr>
     </thead>
     <tbody>
       <?php foreach ($invoices as $inv): ?>
@@ -76,6 +77,7 @@ $monthTax = (int)$db->query("SELECT COALESCE(SUM(tax_amount),0) FROM invoices WH
       <?php endif; ?>
     </tbody>
   </table>
+  </div>
 
   <?php if ($pg['pages'] > 1): ?>
     <nav class="pagination">

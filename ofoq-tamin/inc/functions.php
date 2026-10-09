@@ -844,3 +844,369 @@ function jyear()
     list($jy) = gregorian_to_jalali((int)date('Y'), (int)date('n'), (int)date('j'));
     return (int)$jy;
 }
+
+// ------------------------------------------------------- روش‌های پرداخت
+/** نام فارسی روش پرداخت سفارش (همان برچسب‌های پنل مدیریت) */
+function payment_method_label($method)
+{
+    $labels = [
+        'transfer' => 'انتقال بانکی',
+        'credit'   => 'تسویه اعتباری',
+        'wallet'   => 'اعتبار کارپوشه',
+    ];
+    return $labels[$method] ?? 'انتقال بانکی';
+}
+
+// ------------------------------------------------------- تصویر کالا
+/** الگوی نشانی تصویر آپلودشده: uploads/products/<32 حرف هگزادسیمال>.<پسوند مجاز> */
+const PRODUCT_IMAGE_PATH_PATTERN = '~^uploads/products/[a-f0-9]{32}\.(?:jpg|png|webp)$~';
+
+/**
+ * نشانی قابل نمایش تصویر کالا را برمی‌گرداند.
+ * فقط تصویر آپلودشده (مسیر نسبی با الگوی مشخص) یا نشانی http(s) پذیرفته می‌شود؛
+ * هر مقدار دیگری (مثلاً javascript:) نادیده گرفته و '' برگردانده می‌شود.
+ */
+function product_image_src($value)
+{
+    $value = trim((string)$value);
+    if ($value === '') {
+        return '';
+    }
+    if (preg_match(PRODUCT_IMAGE_PATH_PATTERN, $value)) {
+        return $value;
+    }
+    if (preg_match('~^https?://[^\s"\'<>\\\\]+$~i', $value)) {
+        return $value;
+    }
+    return '';
+}
+
+/** فایل تصویر آپلودشدهٔ یک کالا را از دیسک پاک می‌کند (فقط مسیرهای مجاز با الگوی سخت‌گیرانه) */
+function product_image_remove($value)
+{
+    if (preg_match(PRODUCT_IMAGE_PATH_PATTERN, (string)$value)) {
+        $file = APP_ROOT . '/' . $value;
+        if (is_file($file)) {
+            @unlink($file);
+        }
+    }
+}
+
+/**
+ * فایل آپلودشدهٔ تصویر کالا را بدون ذخیره، بررسی می‌کند.
+ * نوع تصویر از محتوای واقعی فایل (getimagesize) تعیین می‌شود، نه از نام فایل.
+ * @return array{tmp: ?string, ext: ?string, error: ?string} tmp=null یعنی فایلی ارسال نشده است
+ */
+function product_image_inspect($file)
+{
+    $none = ['tmp' => null, 'ext' => null, 'error' => null];
+    if (!is_array($file) || !isset($file['error']) || (int)$file['error'] === UPLOAD_ERR_NO_FILE) {
+        return $none;
+    }
+    $code = (int)$file['error'];
+    $tooLarge = ['tmp' => null, 'ext' => null, 'error' => 'حجم تصویر بیش از حد مجاز است (حداکثر ' . fa_num(PRODUCT_IMAGE_MAX_BYTES / 1048576) . ' مگابایت).'];
+    if ($code === UPLOAD_ERR_INI_SIZE || $code === UPLOAD_ERR_FORM_SIZE) {
+        return $tooLarge;
+    }
+    $failed = ['tmp' => null, 'ext' => null, 'error' => 'دریافت تصویر ناموفق بود؛ لطفاً دوباره تلاش کنید.'];
+    if ($code !== UPLOAD_ERR_OK) {
+        return $failed;
+    }
+    $tmp = (string)($file['tmp_name'] ?? '');
+    if ($tmp === '' || !is_uploaded_file($tmp)) {
+        return $failed;
+    }
+    $size = (int)($file['size'] ?? 0);
+    if ($size <= 0) {
+        return ['tmp' => null, 'ext' => null, 'error' => 'فایل تصویر خالی است.'];
+    }
+    if ($size > PRODUCT_IMAGE_MAX_BYTES) {
+        return $tooLarge;
+    }
+    $info = @getimagesize($tmp);
+    $extensions = [IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp'];
+    if (!$info || !isset($extensions[$info[2]])) {
+        return ['tmp' => null, 'ext' => null, 'error' => 'فقط تصویر با قالب JPG، PNG یا WebP پذیرفته می‌شود.'];
+    }
+    if ($info[0] < 1 || $info[1] < 1 || $info[0] > 4000 || $info[1] > 4000) {
+        return ['tmp' => null, 'ext' => null, 'error' => 'ابعاد تصویر بیش از حد است (حداکثر ۴٬۰۰۰ × ۴٬۰۰۰ پیکسل).'];
+    }
+    return ['tmp' => $tmp, 'ext' => $extensions[$info[2]], 'error' => null];
+}
+
+/**
+ * تصویر بررسی‌شده را با نام تصادفی در uploads/products ذخیره می‌کند.
+ * اگر افزونه GD باشد، تصویر دوباره ساخته می‌شود تا متادادهٔ EXIF (از جمله مکان GPS عکس)
+ * و هر داده‌ی اضافی پس از تصویر حذف شود؛ جهت عکس از روی EXIF اعمال می‌شود.
+ * در نبود GD، فایل اصلی (پس از اعتبارسنجی) ذخیره می‌شود.
+ * فقط پس از موفقیت همهٔ اعتبارسنجی‌های فرم صدا زده شود تا فایل یتیم نماند.
+ * @return array{path: ?string, error: ?string} path=null یعنی فایلی برای ذخیره نبود
+ */
+function product_image_commit(array $inspected)
+{
+    if ($inspected['tmp'] === null) {
+        return ['path' => null, 'error' => null];
+    }
+    $dir = APP_UPLOADS . '/products';
+    if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
+        return ['path' => null, 'error' => 'پوشه تصاویر ساخته نشد؛ دسترسی نوشتن در پوشه سایت را بررسی کنید.'];
+    }
+    $name = bin2hex(random_bytes(16)) . '.' . $inspected['ext'];
+    $target = $dir . '/' . $name;
+    if (!product_image_reencode($inspected['tmp'], $target, $inspected['ext'])) {
+        if (is_file($target)) {
+            @unlink($target);
+        }
+        if (!move_uploaded_file($inspected['tmp'], $target)) {
+            return ['path' => null, 'error' => 'ذخیره تصویر ناموفق بود؛ دسترسی نوشتن در پوشه uploads را بررسی کنید.'];
+        }
+    }
+    return ['path' => 'uploads/products/' . $name, 'error' => null];
+}
+
+/** تصویر را با GD دوباره می‌سازد و در $target می‌نویسد؛ در صورت نبود قابلیت یا خطا false برمی‌گرداند */
+function product_image_reencode($tmp, $target, $ext)
+{
+    if (!extension_loaded('gd') || !function_exists('imagecreatefromstring')) {
+        return false;
+    }
+    $raw = @file_get_contents($tmp);
+    $img = $raw === false ? false : @imagecreatefromstring($raw);
+    if (!$img) {
+        return false;
+    }
+    $saved = false;
+    if ($ext === 'jpg' && function_exists('imagejpeg')) {
+        $img = product_image_apply_orientation($img, jpeg_exif_orientation($tmp));
+        $saved = @imagejpeg($img, $target, 90);
+    } elseif ($ext === 'png' && function_exists('imagepng')) {
+        imagealphablending($img, false);
+        imagesavealpha($img, true);
+        $saved = @imagepng($img, $target, 6);
+    } elseif ($ext === 'webp' && function_exists('imagewebp')) {
+        imagealphablending($img, false);
+        imagesavealpha($img, true);
+        $saved = @imagewebp($img, $target, 88);
+    }
+    imagedestroy($img);
+    return (bool)$saved && is_file($target) && filesize($target) > 0;
+}
+
+/**
+ * جهت EXIF یک JPEG (۱ تا ۸) را از بخش APP1 می‌خواند؛ در نبود یا خطا ۱ (بدون چرخش) برمی‌گرداند.
+ * فقط ۲۵۶ کیلوبایت ابتدای فایل خوانده می‌شود و هیچ خطایی به خروجی نمی‌رود.
+ */
+function jpeg_exif_orientation($file)
+{
+    $data = @file_get_contents($file, false, null, 0, 262144);
+    if (!is_string($data) || strlen($data) < 4 || ord($data[0]) !== 0xFF || ord($data[1]) !== 0xD8) {
+        return 1;
+    }
+    $len = strlen($data);
+    $u16 = function ($o, $le) use ($data, $len) {
+        if ($o < 0 || $o + 1 >= $len) {
+            return 0;
+        }
+        return $le ? (ord($data[$o]) | (ord($data[$o + 1]) << 8)) : ((ord($data[$o]) << 8) | ord($data[$o + 1]));
+    };
+    $u32 = function ($o, $le) use ($u16) {
+        return $le ? ($u16($o, true) | ($u16($o + 2, true) << 16)) : (($u16($o, false) << 16) | $u16($o + 2, false));
+    };
+    $pos = 2;
+    while ($pos + 4 <= $len) {
+        if (ord($data[$pos]) !== 0xFF) {
+            return 1;
+        }
+        $marker = ord($data[$pos + 1]);
+        if ($marker === 0xDA || $marker === 0xD9) {
+            return 1;
+        }
+        $segment = $u16($pos + 2, false);
+        if ($segment < 2) {
+            return 1;
+        }
+        if ($marker === 0xE1 && substr($data, $pos + 4, 6) === "Exif\0\0") {
+            $tiff = $pos + 10;
+            $order = substr($data, $tiff, 2);
+            if ($order !== 'II' && $order !== 'MM') {
+                return 1;
+            }
+            $le = $order === 'II';
+            $ifd = $tiff + $u32($tiff + 4, $le);
+            $count = $u16($ifd, $le);
+            for ($i = 0; $i < $count; $i++) {
+                $entry = $ifd + 2 + 12 * $i;
+                if ($entry + 12 > $len) {
+                    return 1;
+                }
+                if ($u16($entry, $le) === 0x0112) {
+                    $value = $u16($entry + 8, $le);
+                    return ($value >= 1 && $value <= 8) ? $value : 1;
+                }
+            }
+            return 1;
+        }
+        $pos += 2 + $segment;
+    }
+    return 1;
+}
+
+/** جهت تصویر را بر اساس مقدار EXIF Orientation اصلاح می‌کند (۱ = بدون تغییر) */
+function product_image_apply_orientation($img, $orientation)
+{
+    switch ((int)$orientation) {
+        case 2: imageflip($img, IMG_FLIP_HORIZONTAL); break;
+        case 3: $img = imagerotate($img, 180, 0); break;
+        case 4: imageflip($img, IMG_FLIP_VERTICAL); break;
+        case 5: imageflip($img, IMG_FLIP_HORIZONTAL); $img = imagerotate($img, 90, 0); break;
+        case 6: $img = imagerotate($img, -90, 0); break;
+        case 7: imageflip($img, IMG_FLIP_HORIZONTAL); $img = imagerotate($img, -90, 0); break;
+        case 8: $img = imagerotate($img, 90, 0); break;
+    }
+    return $img;
+}
+
+// ------------------------------------------------------- صورتحساب
+/**
+ * یک مبلغ صحیح را به نسبت وزن‌ها بین اقلام تقسیم می‌کند؛ جمع نتیجه دقیقاً برابر مبلغ است
+ * (روش بزرگ‌ترین باقی‌مانده). به این ترتیب جمع مالیات و تخفیف ردیف‌ها با جمع کل صورتحساب می‌خواند.
+ * @return int[] هم‌اندازه با $weights
+ */
+function allocate_amount($amount, array $weights)
+{
+    $amount = (int)round((float)$amount);
+    $weights = array_values($weights);
+    $result = array_fill(0, count($weights), 0);
+    $sum = 0.0;
+    foreach ($weights as $w) {
+        $sum += max(0.0, (float)$w);
+    }
+    if ($sum <= 0.0 || $amount === 0) {
+        return $result;
+    }
+    $fractions = [];
+    $allocated = 0;
+    foreach ($weights as $i => $w) {
+        $exact = $amount * (max(0.0, (float)$w) / $sum);
+        $floor = (int)floor($exact);
+        $result[$i] = $floor;
+        $fractions[$i] = $exact - $floor;
+        $allocated += $floor;
+    }
+    $left = $amount - $allocated;
+    arsort($fractions);
+    foreach (array_keys($fractions) as $i) {
+        if ($left <= 0) {
+            break;
+        }
+        $result[$i]++;
+        $left--;
+    }
+    return $result;
+}
+
+/**
+ * ردیف‌های صورتحساب را با تخفیف و ارزش افزوده تفکیک‌شده برمی‌گرداند.
+ * هر ردیف: discount (سهم تخفیف)، taxable (مبلغ مشمول مالیات)، vat، final (مبلغ نهایی ردیف).
+ * جمع فیلدها دقیقاً با جمع کل صورتحساب (تخفیف و ارزش افزوده ذخیره‌شده) برابر است.
+ */
+function invoice_line_breakdown(array $items, $discount, $vatAmount)
+{
+    $totals = [];
+    foreach ($items as $it) {
+        $totals[] = (int)($it['total'] ?? 0);
+    }
+    $discountShare = allocate_amount($discount, $totals);
+    $taxable = [];
+    foreach ($totals as $i => $t) {
+        $taxable[$i] = $t - $discountShare[$i];
+    }
+    $vat = allocate_amount($vatAmount, $taxable);
+    $rows = [];
+    foreach (array_values($items) as $i => $it) {
+        $rows[] = $it + [
+            'discount' => $discountShare[$i],
+            'taxable'  => $taxable[$i],
+            'vat'      => $vat[$i],
+            'final'    => $taxable[$i] + $vat[$i],
+        ];
+    }
+    return $rows;
+}
+
+/** عدد ۱ تا ۹۹۹ را به حروف فارسی می‌نویسد (بدون صفر) */
+function persian_group_words($n)
+{
+    $ones = ['', 'یک', 'دو', 'سه', 'چهار', 'پنج', 'شش', 'هفت', 'هشت', 'نه'];
+    $teens = ['ده', 'یازده', 'دوازده', 'سیزده', 'چهارده', 'پانزده', 'شانزده', 'هفده', 'هجده', 'نوزده'];
+    $tens = ['', '', 'بیست', 'سی', 'چهل', 'پنجاه', 'شصت', 'هفتاد', 'هشتاد', 'نود'];
+    $hundreds = ['', 'یکصد', 'دویست', 'سیصد', 'چهارصد', 'پانصد', 'ششصد', 'هفتصد', 'هشتصد', 'نهصد'];
+    $parts = [];
+    $h = intdiv($n, 100);
+    $rest = $n % 100;
+    if ($h > 0) {
+        $parts[] = $hundreds[$h];
+    }
+    if ($rest >= 10 && $rest <= 19) {
+        $parts[] = $teens[$rest - 10];
+    } else {
+        $t = intdiv($rest, 10);
+        $o = $rest % 10;
+        if ($t > 0) {
+            $parts[] = $tens[$t];
+        }
+        if ($o > 0) {
+            $parts[] = $ones[$o];
+        }
+    }
+    return implode(' و ', $parts);
+}
+
+/** مبلغ عددی را به حروف فارسی می‌نویسد، مثلاً 1234000 → «یک میلیون و دویست و سی و چهار هزار» */
+function amount_in_words($amount)
+{
+    $n = (int)round((float)$amount);
+    if ($n === 0) {
+        return 'صفر';
+    }
+    $negative = $n < 0;
+    $n = abs($n);
+    $scales = ['', 'هزار', 'میلیون', 'میلیارد', 'تریلیون', 'کوادریلیون'];
+    $groups = [];
+    while ($n > 0) {
+        $groups[] = $n % 1000;
+        $n = intdiv($n, 1000);
+    }
+    if (count($groups) > count($scales)) {
+        return ($negative ? '-' : '') . fa_num(abs((int)round((float)$amount)));
+    }
+    $words = [];
+    for ($i = count($groups) - 1; $i >= 0; $i--) {
+        if ($groups[$i] === 0) {
+            continue;
+        }
+        $part = persian_group_words($groups[$i]);
+        if ($i > 0) {
+            $part .= ' ' . $scales[$i];
+        }
+        $words[] = $part;
+    }
+    return ($negative ? 'منفی ' : '') . implode(' و ', $words);
+}
+
+/**
+ * نشانی تأیید صورتحساب (برای کد QR و چاپ). نشانی کامل است تا با گوشی قابل باز شدن باشد.
+ * اگر نام میزبان نامعتبر باشد، نشانی نسبی برمی‌گردد.
+ */
+function invoice_verify_url($taxUid)
+{
+    $host = (string)($_SERVER['HTTP_HOST'] ?? '');
+    $path = 'index.php?page=invoice&id=' . rawurlencode((string)$taxUid);
+    if (!preg_match('~^[A-Za-z0-9.\-]+(?::\d{1,5})?$~', $host)) {
+        return $path;
+    }
+    $https = (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off')
+        || (int)($_SERVER['SERVER_PORT'] ?? 0) === 443;
+    $dir = rtrim(str_replace('\\', '/', dirname((string)($_SERVER['SCRIPT_NAME'] ?? '/index.php'))), '/');
+    return ($https ? 'https' : 'http') . '://' . $host . $dir . '/' . $path;
+}

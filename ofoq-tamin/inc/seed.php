@@ -203,7 +203,7 @@ function seed_demo_orders(PDO $db)
         foreach ($rows as $r) {
             list($p, $qty, $line) = $r;
             $stmtItem->execute([$orderId, $p['id'], $p['name'], $p['brand'], $p['tax_id'], $p['price'], $qty, $line]);
-            $itemsForInvoice[] = ['name' => $p['name'], 'brand' => $p['brand'], 'tax_id' => $p['tax_id'], 'price' => (int)$p['price'], 'qty' => (int)$qty, 'total' => (int)$line];
+            $itemsForInvoice[] = ['name' => $p['name'], 'brand' => $p['brand'], 'tax_id' => $p['tax_id'], 'unit' => (string)($p['unit'] ?? ''), 'price' => (int)$p['price'], 'qty' => (int)$qty, 'total' => (int)$line];
         }
 
         // صورتحساب الکترونیکی برای سفارش‌های پرداخت‌شده

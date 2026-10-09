@@ -70,7 +70,7 @@ foreach ($errs as $key => $msg) {
             $itemName = $it['name'];
             $qtyId = 'cq-' . (int)$it['id']; ?>
           <div class="cart-row">
-            <a class="cart-thumb" href="<?= product_url($it['id']) ?>" tabindex="-1" aria-hidden="true"><?= e($it['icon']) ?></a>
+            <a class="cart-thumb" href="<?= product_url($it['id']) ?>" tabindex="-1" aria-hidden="true"><?php $thumbSrc = product_image_src($it['image'] ?? ''); ?><?php if ($thumbSrc !== ''): ?><img src="<?= e($thumbSrc) ?>" alt="" loading="lazy"><?php else: ?><?= e($it['icon']) ?><?php endif; ?></a>
 
             <div class="cart-info">
               <a class="cart-name" href="<?= product_url($it['id']) ?>"><?= e($itemName) ?></a>

@@ -195,7 +195,7 @@ switch ($act) {
         foreach ($totals['items'] as $it) {
             $stmtItem->execute([$orderId, $it['id'], $it['name'], $it['brand'], $it['tax_id'], $it['price'], $it['qty'], $it['line_total']]);
             $stmtStock->execute([$it['qty'], $it['qty'], $it['id']]);
-            $itemsJson[] = ['name' => $it['name'], 'brand' => $it['brand'], 'tax_id' => $it['tax_id'], 'price' => (int)$it['price'], 'qty' => (int)$it['qty'], 'total' => (int)$it['line_total']];
+            $itemsJson[] = ['name' => $it['name'], 'brand' => $it['brand'], 'tax_id' => $it['tax_id'], 'unit' => (string)($it['unit'] ?? ''), 'price' => (int)$it['price'], 'qty' => (int)$it['qty'], 'total' => (int)$it['line_total']];
         }
 
         // مصرف کد تخفیف
@@ -320,6 +320,17 @@ switch ($act) {
     case 'product_save': {
         require_admin();
         $id = (int)post('id');
+        $existing = null;
+        if ($id > 0) {
+            $found = $db->prepare('SELECT * FROM products WHERE id = ?');
+            $found->execute([$id]);
+            $existing = $found->fetch();
+            if (!$existing) {
+                flash('کالا یافت نشد.', 'error');
+                redirect('index.php?page=admin_products');
+            }
+        }
+        $formUrl = 'index.php?page=admin_product_form' . ($id ? '&id=' . $id : '');
         $data = [
             'sku' => post('sku'),
             'name' => post('name'),
@@ -337,24 +348,64 @@ switch ($act) {
             'specs' => post('specs'),
             'is_active' => post('is_active') === '1' ? 1 : 0,
         ];
+        $removeImage = post('remove_image') === '1';
+        $inspected = product_image_inspect($_FILES['image_file'] ?? null);
 
+        // اعتبارسنجی همه‌ی فیلدها پیش از ذخیره فایل؛ خطا = فرم با ورودی‌های قبلی برمی‌گردد
+        $errors = [];
         if (mb_strlen($data['name']) < 5 || $data['price'] <= 0 || $data['tax_id'] === '') {
-            flash('نام کالا، قیمت و شناسه کالای مالیاتی الزامی است.', 'error');
-            redirect('index.php?page=admin_product_form' . ($id ? '&id=' . $id : ''));
+            $errors['form'] = 'نام کالا، قیمت و شناسه کالای مالیاتی الزامی است.';
+        }
+        if ($data['image'] !== '') {
+            if (product_image_src($data['image']) === '') {
+                $errors['image'] = 'نشانی تصویر باید با http:// یا https:// شروع شود (یا فایل را آپلود کنید).';
+            } elseif (preg_match(PRODUCT_IMAGE_PATH_PATTERN, $data['image']) && !is_file(APP_ROOT . '/' . $data['image'])) {
+                $errors['image'] = 'فایل تصویر با این نشانی روی سرور پیدا نشد.';
+            }
+        }
+        if ($inspected['error'] !== null) {
+            $errors['image_file'] = $inspected['error'];
+        }
+        if ($errors) {
+            remember_form('product', $data + ['remove_image' => $removeImage ? '1' : ''], $errors);
+            flash(reset($errors), 'error');
+            redirect($formUrl);
         }
 
+        // تصویر جدید > حذف تصویر > نشانی (URL) فعلی فرم
+        $stored = product_image_commit($inspected);
+        if ($stored['error'] !== null) {
+            remember_form('product', $data + ['remove_image' => $removeImage ? '1' : ''], ['image_file' => $stored['error']]);
+            flash($stored['error'], 'error');
+            redirect($formUrl);
+        }
+        if ($stored['path'] !== null) {
+            $imageValue = $stored['path'];
+        } elseif ($removeImage) {
+            $imageValue = null;
+        } else {
+            $imageValue = $data['image'] !== '' ? $data['image'] : null;
+        }
+        $oldImage = $existing['image'] ?? null;
+
         if ($id > 0) {
+            $row = $data;
+            $row['image'] = $imageValue;
+            $row['old_price'] = $data['old_price'] ?: null;
             $sql = 'UPDATE products SET sku=?, name=?, category=?, brand=?, price=?, old_price=?, tax_id=?, unit=?, stock=?, min_stock=?, icon=?, image=?, description=?, specs=?, is_active=? WHERE id=?';
             $stmt = $db->prepare($sql);
-            $stmt->execute([...array_values($data), $id]);
-            log_action('product_update', 'product', $id, 'ویرایش کالا: ' . $data['name']);
+            $stmt->execute([...array_values($row), $id]);
+            if ($oldImage !== $imageValue) {
+                product_image_remove($oldImage);
+            }
+            log_action('product_update', 'product', $id, 'ویرایش کالا: ' . $data['name'] . ($stored['path'] !== null ? ' (تصویر جدید آپلود شد)' : ''));
             flash('کالا با موفقیت به‌روزرسانی شد.', 'success');
         } else {
             $data['created_at'] = date('Y-m-d H:i:s');
             $stmt = $db->prepare('INSERT INTO products (sku, name, category, brand, price, old_price, tax_id, unit, stock, min_stock, icon, image, description, specs, is_active, created_at)
                                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
             $data['sku'] = $data['sku'] ?: 'SKU-' . random_int(1000, 9999);
-            $stmt->execute([$data['sku'], $data['name'], $data['category'], $data['brand'], $data['price'], $data['old_price'] ?: null, $data['tax_id'], $data['unit'], $data['stock'], $data['min_stock'], $data['icon'], $data['image'] ?: null, $data['description'], $data['specs'], $data['is_active'], $data['created_at']]);
+            $stmt->execute([$data['sku'], $data['name'], $data['category'], $data['brand'], $data['price'], $data['old_price'] ?: null, $data['tax_id'], $data['unit'], $data['stock'], $data['min_stock'], $data['icon'], $imageValue, $data['description'], $data['specs'], $data['is_active'], $data['created_at']]);
             $id = (int)$db->lastInsertId();
             log_action('product_create', 'product', $id, 'افزودن کالای جدید: ' . $data['name']);
             flash('کالای جدید با موفقیت به کاتالوگ اضافه شد.', 'success');
@@ -381,6 +432,7 @@ switch ($act) {
         } else {
             $db->prepare('DELETE FROM favorites WHERE product_id = ?')->execute([$id]);
             $db->prepare('DELETE FROM products WHERE id = ?')->execute([$id]);
+            product_image_remove($p['image'] ?? null);
             log_action('product_delete', 'product', $id, 'حذف کالا: ' . $p['name']);
             flash('کالا حذف شد.', 'success');
         }
@@ -515,11 +567,11 @@ switch ($act) {
             redirect('index.php?page=invoice&id=' . $found);
         }
 
-        $items = $db->prepare('SELECT * FROM order_items WHERE order_id = ?');
+        $items = $db->prepare('SELECT oi.*, p.unit AS unit FROM order_items oi LEFT JOIN products p ON p.id = oi.product_id WHERE oi.order_id = ?');
         $items->execute([$id]);
         $rows = [];
         foreach ($items->fetchAll() as $it) {
-            $rows[] = ['name' => $it['name'], 'brand' => $it['brand'], 'tax_id' => $it['tax_id'], 'price' => (int)$it['price'], 'qty' => (int)$it['qty'], 'total' => (int)$it['total']];
+            $rows[] = ['name' => $it['name'], 'brand' => $it['brand'], 'tax_id' => $it['tax_id'], 'unit' => (string)($it['unit'] ?? ''), 'price' => (int)$it['price'], 'qty' => (int)$it['qty'], 'total' => (int)$it['total']];
         }
         $taxUid = gen_tax_unique_id();
         $db->prepare('INSERT INTO invoices (invoice_no, tax_unique_id, order_id, user_id, buyer_name, buyer_phone, buyer_tax_id, subtotal, tax_amount, total_amount, items_json, created_at, status)

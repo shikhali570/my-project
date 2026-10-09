@@ -112,7 +112,7 @@ code, .mono { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; letter-
 .nav-link:hover, .nav-link.active { color: var(--blue); border-bottom-color: var(--blue); background: var(--blue-light); }
 .nav-link.rfq { color: var(--orange); margin-inline-start: auto; }
 
-.page-wrapper { padding: 26px 0 40px; min-height: 60vh; }
+.page-wrapper { padding-top: 26px; padding-bottom: 40px; min-height: 60vh; }
 
 /* --------------------------------------------------------------- دکمه‌ها */
 .btn {
@@ -587,6 +587,7 @@ code, .mono { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; letter-
 
 /* -------------------------------------------------------- فاکتور و چاپ */
 .invoice-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.invoice-toolbar { max-width: 1000px; margin-left: auto; margin-right: auto; }
 .invoice-box-printable { background: #fff; border: 1px solid var(--g200); border-radius: var(--rl); padding: 26px; max-width: 1000px; margin: 0 auto; }
 .inv-head { display: flex; justify-content: space-between; gap: 16px; border-bottom: 2px solid var(--navy); padding-bottom: 12px; margin-bottom: 14px; flex-wrap: wrap; }
 .inv-head h2 { font-size: 16px; font-weight: 800; color: var(--navy); }
@@ -647,7 +648,7 @@ code, .mono { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; letter-
   body { background: #fff; }
   body * { visibility: hidden; }
   .invoice-box-printable, .invoice-box-printable *, .admin-page .card, .admin-page .card * { visibility: visible; }
-  .invoice-box-printable { position: absolute; inset-inline: 0; top: 0; width: 100%; border: none; padding: 0; box-shadow: none; }
+  .invoice-box-printable { position: static; width: 100%; max-width: none; margin: 0; border: none; padding: 0; box-shadow: none; }
   .no-print, .admin-side, .admin-topbar, .admin-foot, .toast-wrap { display: none !important; }
   .admin-shell { display: block; }
   .admin-page { padding: 0; }
@@ -962,4 +963,65 @@ code, .mono { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; letter-
 }
 @media (max-width: 420px) {
   .kpi-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ==================================================================
+   نسخه ۲.۲.۰: تصویر کالا و بازنویسی صورتحساب
+   ================================================================== */
+
+/* ---- تصویر کالا: فرم مدیریت، فهرست و جست‌وجو ---- */
+.product-image-current { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 0 0 16px; }
+.product-image-current img { width: 120px; height: 120px; object-fit: cover; border-radius: var(--r); border: 1px solid var(--g200); background: #fff; }
+.check-line { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--g700); cursor: pointer; }
+.check-line input { width: auto; }
+input[type="file"] { width: 100%; padding: 9px; border: 1px dashed var(--g300); border-radius: var(--r); background: var(--g50); font: inherit; }
+input[type="file"].is-invalid { border-color: var(--red); }
+.cell-ico img, .cart-thumb img, .s-ico img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block; }
+.product-image img { width: 100%; height: 100%; object-fit: contain; }
+
+/* ---- صورتحساب ---- */
+.inv-table-wrap { overflow-x: auto; }
+.inv-table th, .inv-table td { padding: 6px 7px; font-size: 11px; vertical-align: top; }
+.inv-table th { white-space: nowrap; }
+.inv-item-meta { font-size: 10.5px; color: var(--g500); margin-top: 2px; line-height: 1.7; }
+.inv-item-meta .mono { color: var(--g600); }
+.inv-pay { margin-top: 10px; font-size: 11px; color: var(--g700); }
+.inv-pay strong { display: block; color: var(--navy); margin-bottom: 4px; }
+.inv-words { margin-top: 10px; border-radius: var(--r); background: var(--g50); border: 1px solid var(--g200); padding: 8px 10px; font-size: 11.5px; display: grid; gap: 4px; }
+.inv-words span { color: var(--g500); }
+.inv-words strong { color: var(--navy); font-size: 12.5px; line-height: 1.8; }
+.inv-pay-status { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 11.5px; color: var(--g700); }
+.inv-qr-code svg { width: 96px; height: 96px; display: block; margin: 0 auto 4px; }
+.inv-qr-code:empty { width: 96px; height: 96px; margin: 0 auto 4px; border: 1px dashed var(--g300); border-radius: var(--r); }
+.inv-verify { margin-top: 14px; font-size: 10.5px; color: var(--g500); text-align: center; word-break: break-all; }
+@media (max-width: 520px) {
+  .inv-status-bar, .inv-parties, .inv-totals, .inv-sign { grid-template-columns: 1fr; }
+}
+@media screen and (max-width: 768px) {
+  .inv-table-wrap { overflow-x: auto; }
+}
+@media print {
+  .page-wrapper { padding-inline: 0; }
+  .invoice-box-printable, .invoice-box-printable * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .invoice-box-printable thead { display: table-header-group; }
+  .invoice-box-printable tr, .inv-totals, .inv-sign, .inv-words, .inv-status-bar { break-inside: avoid; }
+  .inv-table-wrap { overflow: visible; }
+}
+/* چاپ A4 تک‌صفحه‌ای: فاصله‌ها کمی فشرده می‌شوند تا صورتحساب معمول در یک برگ جا شود */
+@media print {
+  .invoice-box-printable { font-size: 10.5px; }
+  .inv-head { margin-bottom: 8px; padding-bottom: 8px; }
+  .inv-status-bar { padding: 6px 8px; margin-bottom: 8px; }
+  .inv-parties { margin-bottom: 8px; gap: 10px; }
+  .inv-table th, .inv-table td { padding: 4px 5px; font-size: 10px; }
+  .inv-totals { margin-top: 10px; gap: 10px; }
+  .inv-note { padding: 8px; }
+  .inv-note ul { gap: 2px; }
+  .inv-sum > div { padding: 3px 0; }
+  .inv-words { margin-top: 6px; padding: 6px 8px; }
+  .inv-pay-status { margin-top: 6px; }
+  .inv-sign { margin-top: 12px; }
+  .sign-box { height: 48px; }
+  .inv-qr-code svg { width: 80px; height: 80px; }
+  .inv-verify { margin-top: 8px; }
 }

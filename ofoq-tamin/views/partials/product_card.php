@@ -8,8 +8,9 @@ $hasDiscount = !empty($p['old_price']) && $p['old_price'] > $p['price'];
 <div class="pro-card <?= (int)$p['is_active'] ? '' : 'inactive' ?>">
   <div class="pro-media">
     <a class="pro-thumb" href="<?= product_url($p['id']) ?>" tabindex="-1" aria-hidden="true">
-      <?php if (!empty($p['image'])): ?>
-        <img src="<?= e($p['image']) ?>" alt="" loading="lazy">
+      <?php $imgSrc = product_image_src($p['image']); ?>
+      <?php if ($imgSrc !== ''): ?>
+        <img src="<?= e($imgSrc) ?>" alt="" loading="lazy" width="300" height="150">
       <?php else: ?>
         <span class="pro-emoji"><?= e($p['icon']) ?></span>
       <?php endif; ?>

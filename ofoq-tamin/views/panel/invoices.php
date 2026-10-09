@@ -54,6 +54,7 @@ list($totalSum, $taxSum) = $sum->fetch(PDO::FETCH_NUM);
   <?php if (!$invoices): ?>
     <div class="empty-mini">صورتحسابی صادر نشده است. با ثبت سفارش، صورتحساب به صورت خودکار صادر می‌شود.</div>
   <?php else: ?>
+    <div class="table-wrap">
     <table class="data-table">
       <thead>
         <tr><th>شماره فاکتور</th><th>شناسه یکتای مالیاتی</th><th>تاریخ صدور</th><th>مبلغ اقلام</th><th>ارزش افزوده</th><th>مبلغ کل</th><th>وضعیت</th><th></th></tr>
@@ -67,12 +68,13 @@ list($totalSum, $taxSum) = $sum->fetch(PDO::FETCH_NUM);
             <td><?= money($inv['subtotal']) ?></td>
             <td><?= money($inv['tax_amount']) ?></td>
             <td><strong><?= money($inv['total_amount']) ?></strong></td>
-            <td><span class="status success">ثبت قطعی</span></td>
+            <td><span class="status success"><?= e($inv['status']) ?></span></td>
             <td><a class="btn btn-sm btn-primary" href="index.php?page=invoice&id=<?= e($inv['tax_unique_id']) ?>">مشاهده / چاپ</a></td>
           </tr>
         <?php endforeach; ?>
       </tbody>
     </table>
+    </div>
 
     <?php if ($pg['pages'] > 1): ?>
       <nav class="pagination">

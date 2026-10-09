@@ -117,7 +117,7 @@ $lowCount = (int)$db->query('SELECT COUNT(*) FROM products WHERE stock <= min_st
           <td><?= fa_num($p['id']) ?></td>
           <td>
             <div class="cell-product">
-              <span class="cell-ico"><?= e($p['icon']) ?></span>
+              <span class="cell-ico"><?php $thumbSrc = product_image_src($p['image']); ?><?php if ($thumbSrc !== ''): ?><img src="<?= e($thumbSrc) ?>" alt="" loading="lazy"><?php else: ?><?= e($p['icon']) ?><?php endif; ?></span>
               <div>
                 <strong><?= e($p['name']) ?></strong>
                 <div class="mini-note mono"><?= e($p['sku'] ?: '—') ?></div>

@@ -247,7 +247,7 @@ function renderSuggestions(items, q) {
   }
   const rows = items.map((it) => `
     <a class="suggest-item" href="${esc(it.url)}">
-      <span class="s-ico" aria-hidden="true">${esc(it.icon)}</span>
+      <span class="s-ico" aria-hidden="true">${it.image ? `<img src="${esc(it.image)}" alt="" loading="lazy">` : esc(it.icon)}</span>
       <span class="s-body">
         <strong>${esc(it.name)}</strong>
         <small>${esc(it.brand)} · <span class="${it.available ? '' : 'out'}">${it.available ? 'موجود' : 'ناموجود'}</span></small>

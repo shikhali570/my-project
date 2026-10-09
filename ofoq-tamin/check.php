@@ -229,6 +229,16 @@ add_row($groups, 'فایل‌ها و دسترسی‌ها', 'پوشه tmp (فای
     $tmpExists && $tmpWritable,
     'برای ذخیره فایل‌های نشست استفاده می‌شود. اگر وجود ندارد، خود برنامه با اولین اجرا آن را می‌سازد');
 
+// پوشه تصاویر کالا (uploads/products): اگر وجود نداشته باشد، برنامه با اولین آپلود می‌سازد،
+// پس کافی است خود پوشه uploads در ریشه سایت قابل نوشتن باشد.
+$uploadsDir = __DIR__ . '/uploads';
+$uploadsExists = is_dir($uploadsDir);
+$uploadsWritable = $uploadsExists ? real_writable($uploadsDir) : real_writable(__DIR__);
+add_row($groups, 'فایل‌ها و دسترسی‌ها', 'پوشه uploads (تصاویر کالاها)',
+    $uploadsExists ? ($uploadsWritable ? 'موجود و قابل نوشتن' : 'موجود ولی غیرقابل نوشتن') : ($uploadsWritable ? 'ساخته می‌شود (ریشه سایت قابل نوشتن است)' : 'وجود ندارد و ریشه سایت قابل نوشتن نیست'),
+    $uploadsWritable,
+    'آپلود تصویر کالا در مدیریت به این پوشه نیاز دارد. روی IIS کاربر IIS_IUSRS یا حساب Application Pool باید دسترسی Modify داشته باشد');
+
 $sessionDir = $tmpDir . '/sessions';
 $sessionDirExists = is_dir($sessionDir);
 $sessionDirWritable = $sessionDirExists ? real_writable($sessionDir) : false;

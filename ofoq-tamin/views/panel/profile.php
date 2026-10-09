@@ -7,6 +7,7 @@ $provinces = ['تهران', 'البرز', 'اصفهان', 'خراسان رضوی
 
 <section class="card">
   <div class="card-head"><h3 class="card-title">اطلاعات کارپوشه و صورتحساب</h3></div>
+  <p class="mini-note">نوع حساب: خریدار سازمانی · تاریخ عضویت: <?= jdate($me['created_at']) ?> · آخرین ورود: <?= jdate($me['last_login_at'], true) ?></p>
   <form method="POST" action="index.php">
     <?= csrf_field() ?>
     <input type="hidden" name="auth_action" value="profile_update">

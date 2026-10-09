@@ -872,7 +872,6 @@ code, .mono { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; letter-
 /* ---------------------------------------------------- صفحه‌بندی و نتیجه */
 .page-nav { min-width: 0; padding: 0 14px; }
 .pg-summary { text-align: center; font-size: 12px; color: var(--g500); margin-top: 10px; }
-.catalog-head .sec-sub { margin-top: 2px; }
 .check-inline input { accent-color: var(--blue); }
 
 /* ----------------------------------------------- استعلام، ورود و پیگیری */

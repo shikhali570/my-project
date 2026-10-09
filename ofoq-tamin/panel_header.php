@@ -1,70 +1,51 @@
 <?php
-/** قالب بالای پنل خریدار */
+/** قالب بالای پنل خریدار: کاربر، منوی بخش‌ها و عنوان صفحه */
 $me = current_user();
 require __DIR__ . '/header.php';
 
 $panelMenu = [
-    'panel'               => ['📊', 'پیشخوان خریدار'],
+    'panel'               => ['📊', 'پیشخوان'],
     'panel_orders'        => ['📦', 'سفارش‌های من'],
-    'panel_invoices'      => ['🧾', 'صورتحساب‌های مالیاتی'],
+    'panel_invoices'      => ['🧾', 'صورتحساب‌ها'],
     'panel_rfqs'          => ['📋', 'استعلام‌های قیمت'],
     'panel_favorites'     => ['⭐', 'علاقه‌مندی‌ها'],
     'panel_notifications' => ['🔔', 'اعلان‌ها'],
     'panel_profile'       => ['👤', 'کارپوشه و پروفایل'],
 ];
+// صفحه‌های فرعی، بخش مادر خود را در منو هایلایت می‌کنند (جزئیات سفارش زیر «سفارش‌های من»)
+$menuParent = ['panel_order' => 'panel_orders'];
+$menuActive = $menuParent[$currentPage] ?? $currentPage;
 $unreadPanel = unread_notifications($me['id']);
 ?>
 
 <div class="panel-layout">
   <aside class="panel-side">
     <div class="side-user">
-      <div class="side-avatar"><?= e(initials($me['company'] ?: $me['name'])) ?></div>
-      <strong><?= e($me['company'] ?: $me['name']) ?></strong>
-      <small><?= e($me['name']) ?> | <?= e($me['phone']) ?></small>
-      <span class="pill <?= $me['status'] === 'active' ? 'success' : 'danger' ?>">
-        <?= $me['status'] === 'active' ? 'حساب فعال' : 'حساب غیرفعال' ?>
-      </span>
+      <div class="side-avatar" aria-hidden="true"><?= e(initials($me['company'] ?: $me['name'])) ?></div>
+      <div class="side-user-text">
+        <strong><?= e($me['company'] ?: $me['name']) ?></strong>
+        <small><?= e($me['name']) ?> · <span class="mono"><?= e($me['phone']) ?></span></small>
+        <?php if ($me['status'] !== 'active'): ?>
+          <span class="pill danger">حساب غیرفعال است</span>
+        <?php endif; ?>
+      </div>
     </div>
 
-    <div class="side-credit">
-      <span>اعتبار سازمانی کارپوشه</span>
-      <strong><?= money($me['credit']) ?></strong>
-      <small>قابل استفاده در سفارش‌های بعدی</small>
-    </div>
-
-    <nav class="panel-menu">
+    <nav class="panel-menu" aria-label="بخش‌های پنل خریدار">
       <?php foreach ($panelMenu as $key => $item): ?>
-        <a class="panel-link <?= $currentPage === $key ? 'active' : '' ?>" href="index.php?page=<?= $key ?>">
-          <span><?= $item[0] ?></span> <?= $item[1] ?>
+        <a class="panel-link <?= $menuActive === $key ? 'active' : '' ?>" href="index.php?page=<?= $key ?>"<?= $menuActive === $key ? ' aria-current="page"' : '' ?>>
+          <span aria-hidden="true"><?= $item[0] ?></span>
+          <span><?= $item[1] ?></span>
           <?php if ($key === 'panel_notifications' && $unreadPanel): ?>
-            <span class="count-chip"><?= fa_num($unreadPanel) ?></span>
+            <span class="count-chip" aria-label="<?= fa_num($unreadPanel) ?> پیام خوانده‌نشده"><?= fa_num($unreadPanel) ?></span>
           <?php endif; ?>
         </a>
       <?php endforeach; ?>
-      <a class="panel-link danger" href="index.php?action=logout"><span>🚪</span> خروج از حساب</a>
+      <a class="panel-link danger" href="index.php?action=logout"><span aria-hidden="true">🚪</span> <span>خروج از حساب</span></a>
     </nav>
-
-    <div class="side-help">
-      <strong>پشتیبانی تدارکات</strong>
-      <p><?= e(settings('phone')) ?></p>
-      <a class="btn btn-sm btn-orange" href="index.php?page=rfq">ثبت استعلام جدید</a>
-    </div>
   </aside>
 
   <main class="panel-main">
-    <div class="panel-head">
-      <div>
-        <h1 class="panel-title"><?= e($pageTitle) ?></h1>
-        <div class="crumbs">
-          <a href="index.php?page=home">فروشگاه</a> <span>/</span>
-          <a href="index.php?page=panel">پنل خریدار</a> <span>/</span>
-          <span><?= e($pageTitle) ?></span>
-        </div>
-      </div>
-      <div class="panel-head-actions">
-        <a class="btn btn-secondary btn-sm" href="index.php?page=home">🏷️ ادامه خرید</a>
-        <a class="btn btn-primary btn-sm" href="index.php?page=panel_notifications">
-          🔔 اعلان‌ها <?= $unreadPanel ? '<span class="badge-count">' . fa_num($unreadPanel) . '</span>' : '' ?>
-        </a>
-      </div>
-    </div>
+    <header class="panel-head">
+      <h1 class="panel-title"><?= e($pageTitle) ?></h1>
+    </header>

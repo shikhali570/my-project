@@ -173,7 +173,6 @@ code, .mono { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; letter-
 .trust-item { background: #fff; border: 1px solid var(--g200); border-radius: var(--r); padding: 12px 14px; font-size: 12px; font-weight: 600; color: var(--g700); display: flex; gap: 8px; align-items: center; }
 
 /* --------------------------------------------------------------- کاتالوگ */
-.catalog-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
 .filter-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .filter-bar input, .filter-bar select {
   padding: 8px 10px; border: 1px solid var(--g200); border-radius: var(--r);
@@ -420,15 +419,10 @@ code, .mono { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; letter-
 /* --------------------------------------------------------- پنل خریدار */
 .panel-layout { display: grid; grid-template-columns: 280px 1fr; gap: 20px; align-items: start; }
 .panel-side { display: grid; gap: 14px; position: sticky; top: 130px; }
-.side-user, .side-credit, .side-help {
-  background: #fff; border: 1px solid var(--g200); border-radius: var(--rl); padding: 16px; text-align: center;
-}
-.side-user strong { display: block; font-size: 13.5px; font-weight: 800; color: var(--navy); margin-top: 8px; }
-.side-user small { display: block; font-size: 11.5px; color: var(--g500); margin-bottom: 8px; }
-.side-credit { background: linear-gradient(135deg, var(--navy), var(--navy-light)); color: #fff; border: none; text-align: right; }
-.side-credit span { font-size: 11.5px; color: var(--g400); }
-.side-credit strong { display: block; font-size: 17px; font-weight: 800; }
-.side-credit small { font-size: 11px; color: var(--g400); }
+.side-user { background: #fff; border: 1px solid var(--g200); border-radius: var(--rl); padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+.side-user-text { min-width: 0; display: grid; gap: 2px; justify-items: start; }
+.side-user strong { font-size: 13.5px; font-weight: 800; color: var(--navy); overflow-wrap: anywhere; }
+.side-user small { font-size: 11.5px; color: var(--g500); overflow-wrap: anywhere; }
 .panel-menu { background: #fff; border: 1px solid var(--g200); border-radius: var(--rl); padding: 8px; display: grid; gap: 3px; }
 .panel-link { display: flex; align-items: center; gap: 9px; padding: 10px 12px; border-radius: var(--r); font-weight: 600; font-size: 12.5px; color: var(--g700); }
 .panel-link:hover { background: var(--g50); }
@@ -436,14 +430,10 @@ code, .mono { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; letter-
 .panel-link.danger { color: var(--red); }
 .count-chip { margin-inline-start: auto; background: var(--red); color: #fff; font-size: 10.5px; padding: 1px 7px; border-radius: 20px; font-weight: 700; }
 .panel-link.active .count-chip { background: var(--blue); }
-.side-help { text-align: right; }
-.side-help strong { font-size: 12.5px; }
-.side-help p { font-size: 12.5px; color: var(--g600); margin: 4px 0 10px; }
 
 .panel-main { min-width: 0; display: grid; gap: 18px; }
 .panel-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
 .panel-title { font-size: 19px; font-weight: 800; color: var(--navy); }
-.panel-head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .panel-grid { display: grid; grid-template-columns: 1.35fr 1fr; gap: 18px; align-items: start; }
 
 .rfq-card { border: 1px solid var(--g200); border-radius: var(--rl); padding: 16px; margin-bottom: 14px; background: #fff; }
@@ -1024,4 +1014,69 @@ input[type="file"].is-invalid { border-color: var(--red); }
   .sign-box { height: 48px; }
   .inv-qr-code svg { width: 80px; height: 80px; }
   .inv-verify { margin-top: 8px; }
+}
+
+/* ==================================================================
+   نسخه ۲.۳.۰: ساده‌سازی پنل خریدار و سربرگ کاتالوگ محصولات
+   ================================================================== */
+
+/* ---- سربرگ کاتالوگ محصولات: عنوان و تعداد، سپس جست‌وجو و گزینه‌ها ---- */
+.catalog-head { display: grid; gap: 12px; margin-bottom: 18px; }
+.catalog-title { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.catalog-back { display: inline-block; font-size: 12px; font-weight: 700; color: var(--blue); margin-bottom: 4px; }
+.catalog-back:hover { text-decoration: underline; }
+.catalog-filters { display: grid; gap: 10px; align-items: stretch; padding: 12px; background: #fff; border: 1px solid var(--g200); border-radius: var(--rl); }
+.catalog-search { display: flex; gap: 8px; align-items: center; }
+.catalog-search .filter-search { flex: 1; min-width: 0; font-size: 13px; padding: 9px 12px; }
+.catalog-options { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.catalog-options select { font-size: 13px; padding: 8px 10px; min-width: 150px; }
+.catalog-options .check-inline { padding: 0 4px; }
+
+/* ---- پنل خریدار: پیشخوان ---- */
+.panel-main > .card + .card { margin-top: 0; }
+.panel-quick { display: flex; gap: 8px; flex-wrap: wrap; }
+.order-filter { margin-bottom: 14px; }
+.summary-card { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 0; overflow: hidden; }
+.summary-item { padding: 16px 18px; display: grid; gap: 4px; align-content: start; min-width: 0; }
+.summary-item + .summary-item { border-inline-start: 1px solid var(--g200); }
+.summary-item span { font-size: 12px; color: var(--g500); font-weight: 600; }
+.summary-item strong { font-size: 18px; font-weight: 800; color: var(--navy); line-height: 1.6; overflow-wrap: anywhere; }
+.summary-item small { font-size: 11.5px; color: var(--g500); }
+.alert-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.cell-action { text-align: left; white-space: nowrap; }
+.cell-actions { justify-content: flex-start; flex-wrap: wrap; }
+
+/* ---- پنل خریدار: جزئیات سفارش ---- */
+.back-link { display: inline-block; font-size: 12.5px; font-weight: 700; color: var(--blue); margin-bottom: 6px; }
+.back-link:hover { text-decoration: underline; }
+.detail-side { display: grid; gap: 18px; align-content: start; min-width: 0; }
+.action-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.panel-main .cell-name { white-space: normal; min-width: 150px; }
+
+/* ---- بخش‌های جمع‌شونده (تاریخچه سفارش، تغییر گذرواژه) ---- */
+details.collapsible > summary { cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14.5px; font-weight: 800; color: var(--navy); }
+details.collapsible > summary::-webkit-details-marker { display: none; }
+details.collapsible > summary::after { content: '▾'; color: var(--g500); font-size: 14px; line-height: 1; transition: transform .2s; }
+details.collapsible[open] > summary { margin-bottom: 14px; }
+details.collapsible[open] > summary::after { transform: rotate(180deg); }
+details.collapsible > summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; border-radius: 6px; }
+
+/* ---- پنل خریدار روی صفحه‌های کوچک: منوی افقی و خلاصه‌ی یک‌ستونه ---- */
+@media (max-width: 1024px) {
+  .panel-menu { display: flex; gap: 6px; overflow-x: auto; padding: 6px; scrollbar-width: thin; }
+  .panel-menu .panel-link { flex: none; white-space: nowrap; }
+}
+@media (max-width: 640px) {
+  .summary-card { grid-template-columns: minmax(0, 1fr); }
+  .summary-item + .summary-item { border-inline-start: none; border-top: 1px solid var(--g200); }
+  .catalog-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .catalog-options select { min-width: 0; width: 100%; }
+  .catalog-options .check-inline { grid-column: 1 / -1; }
+}
+@media (max-width: 768px) {
+  /* جلوگیری از بزرگ‌نمایی خودکار صفحه در iOS هنگام فوکوس روی فیلدهای کاتالوگ */
+  .catalog-search .filter-search, .catalog-options select { font-size: 16px; }
+  /* جدول‌های پنل خریدار: پیمایش افقی داخل خود جدول می‌ماند و عرض آن به کل صفحه سرریز نمی‌کند */
+  .panel-main .table-wrap { contain: paint; }
+  .panel-main .data-table { display: table; }
 }

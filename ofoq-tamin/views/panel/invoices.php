@@ -1,5 +1,5 @@
 <?php
-/** صورتحساب‌های الکترونیکی خریدار */
+/** صورتحساب‌های الکترونیکی خریدار: جمع‌بندی، جست‌وجو و فهرست */
 require_buyer();
 $me = current_user();
 $q = get('q');
@@ -21,67 +21,52 @@ $stmt = $db->prepare('SELECT * FROM invoices' . $sqlWhere . ' ORDER BY id DESC L
 $stmt->execute($params);
 $invoices = $stmt->fetchAll();
 
-$sum = $db->prepare('SELECT COALESCE(SUM(total_amount),0), COALESCE(SUM(tax_amount),0) FROM invoices WHERE user_id = ?');
+$sum = $db->prepare('SELECT COUNT(*), COALESCE(SUM(total_amount),0), COALESCE(SUM(tax_amount),0) FROM invoices WHERE user_id = ?');
 $sum->execute([$me['id']]);
-list($totalSum, $taxSum) = $sum->fetch(PDO::FETCH_NUM);
+list($allCount, $totalSum, $taxSum) = $sum->fetch(PDO::FETCH_NUM);
 ?>
 
-<div class="kpi-grid">
-  <div class="kpi-card">
-    <span class="kpi-ico blue">🧾</span>
-    <div><span>تعداد صورتحساب صادرشده</span><strong><?= fa_num($pg['total']) ?></strong><small>ثبت‌شده در سامانه مؤدیان</small></div>
-  </div>
-  <div class="kpi-card">
-    <span class="kpi-ico green">💰</span>
-    <div><span>مجموع مبالغ صورتحساب‌ها</span><strong><?= money_short($totalSum) ?> تومان</strong><small>شامل ارزش افزوده</small></div>
-  </div>
-  <div class="kpi-card">
-    <span class="kpi-ico orange">📊</span>
-    <div><span>اعتبار ارزش افزوده قابل استناد</span><strong><?= money_short($taxSum) ?> تومان</strong><small>منتقل‌شده به کارپوشه شما</small></div>
-  </div>
-</div>
-
-<div class="card">
+<section class="card">
   <div class="card-head">
-    <h3 class="card-title">آرشیو صورتحساب‌های الکترونیکی</h3>
+    <h3 class="card-title">صورتحساب‌ها (<?= fa_num($allCount) ?>)</h3>
     <form class="inline-search" method="GET" action="index.php">
       <input type="hidden" name="page" value="panel_invoices">
-      <input type="text" name="q" value="<?= e($q) ?>" placeholder="جست‌وجوی شماره فاکتور یا شناسه یکتا">
+      <input type="search" name="q" value="<?= e($q) ?>" placeholder="شماره فاکتور یا شناسه یکتا" aria-label="جست‌وجوی صورتحساب">
       <button class="btn btn-sm btn-primary" type="submit">جست‌وجو</button>
     </form>
   </div>
 
+  <p class="table-note">
+    مجموع مبالغ (شامل ارزش افزوده): <strong><?= money($totalSum) ?></strong>
+    · ارزش افزوده قابل استناد: <strong><?= money($taxSum) ?></strong>
+  </p>
+
   <?php if (!$invoices): ?>
-    <div class="empty-mini">صورتحسابی صادر نشده است. با ثبت سفارش، صورتحساب به صورت خودکار صادر می‌شود.</div>
+    <div class="empty-mini"><?= $q !== '' ? 'صورتحسابی با این مشخصات پیدا نشد.' : 'صورتحسابی صادر نشده است. با ثبت سفارش، صورتحساب به‌صورت خودکار صادر می‌شود.' ?></div>
   <?php else: ?>
-    <div class="table-wrap">
-    <table class="data-table">
+    <div class="table-wrap"><table class="data-table">
       <thead>
-        <tr><th>شماره فاکتور</th><th>شناسه یکتای مالیاتی</th><th>تاریخ صدور</th><th>مبلغ اقلام</th><th>ارزش افزوده</th><th>مبلغ کل</th><th>وضعیت</th><th></th></tr>
+        <tr><th>شماره فاکتور</th><th>تاریخ صدور</th><th>مبلغ کل</th><th>شناسه یکتای مالیاتی</th><th><span class="visually-hidden">عملیات</span></th></tr>
       </thead>
       <tbody>
         <?php foreach ($invoices as $inv): ?>
           <tr>
             <td><strong class="mono"><?= e($inv['invoice_no']) ?></strong></td>
-            <td class="mono small"><?= e($inv['tax_unique_id']) ?></td>
             <td><?= jdate($inv['created_at']) ?></td>
-            <td><?= money($inv['subtotal']) ?></td>
-            <td><?= money($inv['tax_amount']) ?></td>
             <td><strong><?= money($inv['total_amount']) ?></strong></td>
-            <td><span class="status success"><?= e($inv['status']) ?></span></td>
-            <td><a class="btn btn-sm btn-primary" href="index.php?page=invoice&id=<?= e($inv['tax_unique_id']) ?>">مشاهده / چاپ</a></td>
+            <td class="mono small"><?= e($inv['tax_unique_id']) ?></td>
+            <td class="cell-action"><a class="btn btn-sm btn-primary" href="index.php?page=invoice&id=<?= e($inv['tax_unique_id']) ?>">مشاهده / چاپ</a></td>
           </tr>
         <?php endforeach; ?>
       </tbody>
-    </table>
-    </div>
+    </table></div>
 
     <?php if ($pg['pages'] > 1): ?>
-      <nav class="pagination">
+      <nav class="pagination" aria-label="صفحات صورتحساب‌ها">
         <?php for ($i = 1; $i <= $pg['pages']; $i++): ?>
-          <a class="page-item <?= $i === $pg['current'] ? 'active' : '' ?>" href="<?= e(page_link('panel_invoices', ['p' => $i])) ?>"><?= fa_num($i) ?></a>
+          <a class="page-item <?= $i === $pg['current'] ? 'active' : '' ?>" href="<?= e(page_link('panel_invoices', ['p' => $i])) ?>"<?= $i === $pg['current'] ? ' aria-current="page"' : '' ?>><?= fa_num($i) ?></a>
         <?php endfor; ?>
       </nav>
     <?php endif; ?>
   <?php endif; ?>
-</div>
+</section>

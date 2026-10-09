@@ -104,7 +104,7 @@ $currentIdx = array_search($order['status'], $steps, true);
         <div class="grid-2">
           <div class="input-group">
             <label for="od-status">وضعیت سفارش</label>
-            <select id="od-status" name="status" data-original="<?= e($order[\'status\']) ?>">
+            <select id="od-status" name="status" data-original="<?= e($order['status']) ?>">
               <?php foreach (order_statuses() as $k => $label): ?>
                 <option value="<?= $k ?>" <?= $order['status'] === $k ? 'selected' : '' ?>><?= e($label) ?></option>
               <?php endforeach; ?>

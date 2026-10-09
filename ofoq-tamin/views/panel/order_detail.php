@@ -1,5 +1,5 @@
 <?php
-/** جزئیات سفارش خریدار + پیگیری */
+/** جزئیات سفارش خریدار: پیگیری مرحله‌ای، اقلام، ارسال و مالی، صورتحساب و اقدامات */
 require_buyer();
 $me = current_user();
 $no = get('no');
@@ -8,7 +8,7 @@ $stmt->execute([$no, $me['id']]);
 $order = $stmt->fetch();
 
 if (!$order) {
-    echo '<div class="empty-state"><span>📦</span><h3>سفارش یافت نشد</h3><a class="btn btn-primary" href="index.php?page=panel_orders">بازگشت به لیست سفارش‌ها</a></div>';
+    echo '<div class="empty-state"><span aria-hidden="true">📦</span><h3>سفارش یافت نشد</h3><a class="btn btn-primary" href="index.php?page=panel_orders">بازگشت به لیست سفارش‌ها</a></div>';
     return;
 }
 
@@ -27,38 +27,40 @@ $logRows = $logs->fetchAll();
 $steps = order_timeline_steps();
 $currentIdx = array_search($order['status'], $steps, true);
 $vatPercent = fa_num((float)settings('vat_rate', 10), 0);
+$canCancel = in_array($order['status'], ['pending', 'approved'], true);
 ?>
+
+<a class="back-link" href="index.php?page=panel_orders">→ همه سفارش‌ها</a>
 
 <div class="detail-head">
   <div>
     <h2 class="sec-title">سفارش <span class="mono"><?= e($order['order_no']) ?></span></h2>
     <p class="sec-sub">ثبت‌شده در <?= jdate($order['created_at'], true) ?> | آخرین به‌روزرسانی: <?= jdate($order['updated_at'], true) ?></p>
   </div>
-  <div class="flex-gap">
+  <div class="flex-gap wrap">
     <span class="status <?= order_status_class($order['status']) ?>"><?= order_status_icon($order['status']) ?> <?= e(order_status_label($order['status'])) ?></span>
     <span class="pill <?= $order['payment_status'] === 'paid' ? 'success' : 'warn' ?>"><?= e(payment_status_label($order['payment_status'])) ?></span>
-    <button class="btn btn-secondary btn-sm" onclick="window.print()">🖨️ چاپ</button>
+    <button class="btn btn-secondary btn-sm" type="button" onclick="window.print()">🖨️ چاپ</button>
   </div>
 </div>
 
 <?php if ($order['status'] !== 'canceled'): ?>
-  <div class="card">
+  <section class="card">
     <div class="timeline">
       <?php foreach ($steps as $i => $s): ?>
         <div class="tl-step <?= $currentIdx !== false && $i <= $currentIdx ? 'done' : '' ?> <?= $currentIdx === $i ? 'current' : '' ?>">
-          <div class="tl-dot"><?= order_status_icon($s) ?></div>
+          <div class="tl-dot" aria-hidden="true"><?= order_status_icon($s) ?></div>
           <div class="tl-label"><?= e(order_status_label($s)) ?></div>
         </div>
       <?php endforeach; ?>
     </div>
-    <div class="progress-bar"><span style="width: <?= order_progress($order['status']) ?>%"></span></div>
-  </div>
+  </section>
 <?php else: ?>
-  <div class="alert danger">این سفارش لغو شده است. در صورت نیاز به ثبت مجدد، اقلام را از سبد خرید یا علاقه‌مندی‌ها انتخاب کنید.</div>
+  <div class="alert danger">این سفارش لغو شده است. در صورت نیاز به ثبت مجدد، اقلام را از کاتالوگ انتخاب کنید.</div>
 <?php endif; ?>
 
-<div class="detail-grid">
-  <div class="card">
+<div class="detail-grid wide-left">
+  <section class="card">
     <h3 class="card-title">اقلام سفارش</h3>
     <div class="table-wrap"><table class="data-table">
       <thead><tr><th>#</th><th>کالا</th><th>قیمت واحد</th><th>تعداد</th><th>مبلغ</th></tr></thead>
@@ -66,7 +68,7 @@ $vatPercent = fa_num((float)settings('vat_rate', 10), 0);
         <?php foreach ($rows as $i => $r): ?>
           <tr>
             <td><?= fa_num($i + 1) ?></td>
-            <td>
+            <td class="cell-name">
               <strong><?= e($r['name']) ?></strong>
               <div class="mini-note"><?= e($r['brand']) ?> | <span class="mono"><?= e($r['tax_id']) ?></span></div>
             </td>
@@ -85,11 +87,11 @@ $vatPercent = fa_num((float)settings('vat_rate', 10), 0);
     <div class="sum-line"><span>ارزش افزوده (<?= $vatPercent ?>٪):</span><span><?= money($order['tax_amount']) ?></span></div>
     <div class="sum-line"><span>هزینه ارسال:</span><span><?= $order['shipping'] > 0 ? money($order['shipping']) : 'رایگان' ?></span></div>
     <div class="sum-line total"><span>مبلغ کل:</span><span><?= money($order['total']) ?></span></div>
-  </div>
+  </section>
 
-  <div>
-    <div class="card">
-      <h3 class="card-title">اطلاعات ارسال و مالی</h3>
+  <div class="detail-side">
+    <section class="card">
+      <h3 class="card-title">ارسال و پرداخت</h3>
       <div class="kv"><span>تحویل‌گیرنده:</span><strong><?= e($order['customer_name']) ?></strong></div>
       <div class="kv"><span>شرکت:</span><strong><?= e($order['company'] ?: '—') ?></strong></div>
       <div class="kv"><span>تماس:</span><strong class="mono"><?= e($order['phone']) ?></strong></div>
@@ -103,25 +105,24 @@ $vatPercent = fa_num((float)settings('vat_rate', 10), 0);
       <?php if ($order['admin_note']): ?>
         <div class="alert info">پیام واحد فروش: <?= e($order['admin_note']) ?></div>
       <?php endif; ?>
-    </div>
+    </section>
 
-    <div class="card">
-      <h3 class="card-title">سند مالیاتی</h3>
+    <section class="card">
+      <h3 class="card-title">صورتحساب و اقدامات</h3>
       <?php if ($invoice): ?>
         <div class="kv"><span>شماره صورتحساب:</span><strong class="mono"><?= e($invoice['invoice_no']) ?></strong></div>
         <div class="kv"><span>شناسه یکتای مالیاتی:</span><strong class="mono"><?= e($invoice['tax_unique_id']) ?></strong></div>
         <div class="kv"><span>وضعیت:</span><strong class="status success"><?= e($invoice['status']) ?></strong></div>
-        <a class="btn btn-primary btn-sm" href="index.php?page=invoice&id=<?= e($invoice['tax_unique_id']) ?>">🧾 مشاهده و چاپ صورتحساب</a>
+        <div class="action-row">
+          <a class="btn btn-primary btn-sm" href="index.php?page=invoice&id=<?= e($invoice['tax_unique_id']) ?>">🧾 مشاهده و چاپ صورتحساب</a>
+        </div>
       <?php else: ?>
         <div class="alert warn">صورتحساب این سفارش در حال صدور است.</div>
       <?php endif; ?>
-    </div>
 
-    <div class="card">
-      <h3 class="card-title">اقدامات</h3>
-      <div class="flex-gap wrap">
-        <?php if (in_array($order['status'], ['pending', 'approved'], true)): ?>
-          <button class="btn btn-sm btn-danger" data-confirm="آیا از لغو این سفارش مطمئن هستید؟" data-form="cancelForm">لغو سفارش</button>
+      <div class="action-row">
+        <?php if ($canCancel): ?>
+          <button class="btn btn-sm btn-danger" type="button" data-confirm="آیا از لغو این سفارش مطمئن هستید؟" data-form="cancelForm">لغو سفارش</button>
         <?php endif; ?>
         <a class="btn btn-sm btn-secondary" href="index.php?page=rfq&items=<?= urlencode('سفارش ' . $order['order_no'] . ' مجدداً نیاز است') ?>">ثبت استعلام مجدد</a>
         <a class="btn btn-sm btn-secondary" href="index.php?page=contact">تماس با پشتیبانی</a>
@@ -131,11 +132,11 @@ $vatPercent = fa_num((float)settings('vat_rate', 10), 0);
         <input type="hidden" name="action" value="buyer_cancel_order">
         <input type="hidden" name="id" value="<?= (int)$order['id'] ?>">
       </form>
-    </div>
+    </section>
 
     <?php if ($logRows): ?>
-      <div class="card">
-        <h3 class="card-title">تاریخچه تغییرات</h3>
+      <details class="card collapsible">
+        <summary>تاریخچه تغییرات (<?= fa_num(count($logRows)) ?>)</summary>
         <ul class="log-list">
           <?php foreach ($logRows as $l): ?>
             <li>
@@ -145,7 +146,7 @@ $vatPercent = fa_num((float)settings('vat_rate', 10), 0);
             </li>
           <?php endforeach; ?>
         </ul>
-      </div>
+      </details>
     <?php endif; ?>
   </div>
 </div>

@@ -7,11 +7,12 @@ $stmt = $db->prepare('SELECT * FROM notifications WHERE user_id = ? ORDER BY is_
 $stmt->execute([$me['id']]);
 $rows = $stmt->fetchAll();
 $unread = unread_notifications($me['id']);
+$backToList = urlencode('index.php?page=panel_notifications');
 ?>
 
-<div class="card">
+<section class="card">
   <div class="card-head">
-    <h3 class="card-title">صندوق پیام‌ها <?= $unread ? '<span class="pill warn">' . fa_num($unread) . ' خوانده‌نشده</span>' : '' ?></h3>
+    <h3 class="card-title">پیام‌ها <?= $unread ? '<span class="pill warn">' . fa_num($unread) . ' خوانده‌نشده</span>' : '' ?></h3>
     <?php if ($unread): ?>
       <form method="POST" action="index.php">
         <?= csrf_field() ?>
@@ -32,16 +33,17 @@ $unread = unread_notifications($me['id']);
             <small><?= jdate($n['created_at'], true) ?> • <?= time_ago($n['created_at']) ?></small>
           </div>
           <p><?= e($n['body']) ?></p>
-          <div class="note-actions">
-            <?php if ($n['link']): ?>
-              <a class="btn btn-sm btn-primary" href="index.php?action=notify_read&id=<?= (int)$n['id'] ?>&back=<?= urlencode($n['link']) ?>">مشاهده جزئیات</a>
-            <?php endif; ?>
-            <?php if (!(int)$n['is_read']): ?>
-              <a class="btn btn-sm btn-secondary" href="index.php?action=notify_read&id=<?= (int)$n['id'] ?>&back=<?= urlencode('index.php?page=panel_notifications') ?>">علامت‌گذاری خوانده‌شده</a>
-            <?php endif; ?>
-          </div>
+          <?php if ($n['link'] || !(int)$n['is_read']): ?>
+            <div class="note-actions">
+              <?php if ($n['link']): ?>
+                <a class="btn btn-sm btn-primary" href="index.php?action=notify_read&id=<?= (int)$n['id'] ?>&back=<?= urlencode($n['link']) ?>">مشاهده</a>
+              <?php else: ?>
+                <a class="btn btn-sm btn-secondary" href="index.php?action=notify_read&id=<?= (int)$n['id'] ?>&back=<?= $backToList ?>">خوانده شد</a>
+              <?php endif; ?>
+            </div>
+          <?php endif; ?>
         </div>
       <?php endforeach; ?>
     </div>
   <?php endif; ?>
-</div>
+</section>

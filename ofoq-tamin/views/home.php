@@ -108,42 +108,52 @@ $filtersActive = $q || $brand || $priceMax || $onlyAvailable || $sort !== 'newes
 <?php endif; ?>
 
 <div class="catalog-head" id="catalog">
-  <div>
-    <h2 class="sec-title"><?= $activeCat ? e($activeCat) : 'تجهیزات و ادوات مهندسی' ?></h2>
-    <p class="sec-sub" aria-live="polite">
-      <?= fa_num($total) ?> کالا<?= $q ? ' برای «' . e($q) . '»' : '' ?>
-      <?= $onlyAvailable ? ' · فقط کالاهای موجود' : '' ?>
-    </p>
+  <div class="catalog-title">
+    <div>
+      <?php if ($cat): ?>
+        <a class="catalog-back" href="index.php?page=home">→ همه تجهیزات</a>
+      <?php endif; ?>
+      <h2 class="sec-title"><?= $activeCat ? e($activeCat) : 'تجهیزات و ادوات مهندسی' ?></h2>
+      <p class="sec-sub" aria-live="polite">
+        <?= fa_num($total) ?> کالا<?= $q ? ' برای «' . e($q) . '»' : '' ?><?= $onlyAvailable ? ' · فقط کالاهای موجود' : '' ?>
+      </p>
+    </div>
+    <?php if ($filtersActive): ?>
+      <a class="btn btn-secondary btn-sm" href="index.php?page=home<?= $cat ? '&cat=' . e($cat) : '' ?>">✕ پاک‌کردن فیلترها</a>
+    <?php endif; ?>
   </div>
-  <form class="filter-bar" method="GET" action="index.php" role="search">
+
+  <form class="filter-bar catalog-filters" method="GET" action="index.php" role="search">
     <input type="hidden" name="page" value="home">
     <?php if ($cat): ?><input type="hidden" name="cat" value="<?= e($cat) ?>"><?php endif; ?>
-    <input type="search" name="q" value="<?= e($q) ?>" placeholder="نام کالا، برند یا شناسه…" class="filter-search" aria-label="جست‌وجو در کاتالوگ">
-    <select name="brand" aria-label="برند">
-      <option value="">همه برندها</option>
-      <?php foreach ($brands as $b): ?>
-        <option value="<?= e($b['brand']) ?>" <?= $brand === $b['brand'] ? 'selected' : '' ?>><?= e($b['brand']) ?> (<?= fa_num($b['c']) ?>)</option>
-      <?php endforeach; ?>
-    </select>
-    <select name="price_max" aria-label="محدوده قیمت">
-      <option value="">هر قیمتی</option>
-      <?php foreach ([2000000, 5000000, 10000000, 20000000] as $cap): ?>
-        <option value="<?= $cap ?>" <?= $priceMax === $cap ? 'selected' : '' ?>>تا <?= money_short($cap) ?> تومان</option>
-      <?php endforeach; ?>
-    </select>
-    <select name="sort" aria-label="مرتب‌سازی">
-      <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>>جدیدترین</option>
-      <option value="popular" <?= $sort === 'popular' ? 'selected' : '' ?>>پرفروش‌ترین</option>
-      <option value="price_asc" <?= $sort === 'price_asc' ? 'selected' : '' ?>>ارزان‌ترین</option>
-      <option value="price_desc" <?= $sort === 'price_desc' ? 'selected' : '' ?>>گران‌ترین</option>
-    </select>
-    <label class="check-inline">
-      <input type="checkbox" name="available" value="1" <?= $onlyAvailable ? 'checked' : '' ?>> فقط موجود
-    </label>
-    <button class="btn btn-primary btn-sm" type="submit">اعمال</button>
-    <?php if ($filtersActive): ?>
-      <a class="btn btn-secondary btn-sm" href="index.php?page=home<?= $cat ? '&cat=' . e($cat) : '' ?>">پاک‌کردن فیلترها</a>
-    <?php endif; ?>
+    <div class="catalog-search">
+      <input type="search" name="q" value="<?= e($q) ?>" placeholder="نام کالا، برند یا شناسه…" class="filter-search" aria-label="جست‌وجو در کاتالوگ">
+      <button class="btn btn-primary btn-sm" type="submit">جست‌وجو</button>
+    </div>
+    <div class="catalog-options">
+      <select name="brand" aria-label="برند">
+        <option value="">همه برندها</option>
+        <?php foreach ($brands as $b): ?>
+          <option value="<?= e($b['brand']) ?>" <?= $brand === $b['brand'] ? 'selected' : '' ?>><?= e($b['brand']) ?> (<?= fa_num($b['c']) ?>)</option>
+        <?php endforeach; ?>
+      </select>
+      <select name="price_max" aria-label="محدوده قیمت">
+        <option value="">هر قیمتی</option>
+        <?php foreach ([2000000, 5000000, 10000000, 20000000] as $cap): ?>
+          <option value="<?= $cap ?>" <?= $priceMax === $cap ? 'selected' : '' ?>>تا <?= money_short($cap) ?> تومان</option>
+        <?php endforeach; ?>
+      </select>
+      <select name="sort" aria-label="مرتب‌سازی">
+        <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>>جدیدترین</option>
+        <option value="popular" <?= $sort === 'popular' ? 'selected' : '' ?>>پرفروش‌ترین</option>
+        <option value="price_asc" <?= $sort === 'price_asc' ? 'selected' : '' ?>>ارزان‌ترین</option>
+        <option value="price_desc" <?= $sort === 'price_desc' ? 'selected' : '' ?>>گران‌ترین</option>
+      </select>
+      <label class="check-inline">
+        <input type="checkbox" name="available" value="1" <?= $onlyAvailable ? 'checked' : '' ?>> فقط موجود
+      </label>
+      <noscript><button class="btn btn-secondary btn-sm" type="submit">اعمال</button></noscript>
+    </div>
   </form>
 </div>
 

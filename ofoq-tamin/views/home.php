@@ -100,12 +100,6 @@ $filtersActive = $q || $brand || $priceMax || $onlyAvailable || $sort !== 'newes
     </div>
   </section>
 
-  <div class="trust-row">
-    <div class="trust-item"><span>🚚</span> ارسال رایگان برای سفارش‌های بالای <?= money_short(settings('free_shipping_min')) ?> تومان</div>
-    <div class="trust-item"><span>🧾</span> صورتحساب نوع ۱ در همان لحظه ثبت سفارش</div>
-    <div class="trust-item"><span>🔁</span> بازگشت اقلام سالم و بسته‌بندی‌نشده تا ۷ روز</div>
-    <div class="trust-item"><span>💳</span> تسویه اعتباری ۳۰ روزه برای خریداران دارای سابقه</div>
-  </div>
 <?php endif; ?>
 
 <div class="catalog-head" id="catalog">

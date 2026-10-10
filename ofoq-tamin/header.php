@@ -128,7 +128,7 @@ $isBuyerPanel = in_array($currentPage ?? '', $buyerPages, true);
       <span class="modiyan-mark" aria-hidden="true">✓</span>
       <div class="modiyan-copy">
         <strong>صدور صورتحساب الکترونیکی در سامانه مؤدیان</strong>
-        <span>صدور آنی نوع ۱ با شناسه یکتای مالیاتی کالا و انتقال اعتبار ارزش افزوده به کارپوشه خریدار.</span>
+        <span>صدور صورتحساب الکترونیک مودیان با شناسه یکتای مالیاتی کالا و انتقال اعتبار ارزش افزوده به کارپوشه خریدار.</span>
       </div>
       <a href="index.php?page=about">جزئیات بیشتر <span aria-hidden="true">←</span></a>
     </div>

@@ -6,6 +6,7 @@
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/inc/auth.php';    // ورود، ثبت‌نام، پروفایل، گذرواژه
+require_once __DIR__ . '/inc/payment_gateway.php'; // درگاه امن به‌پرداخت ملت
 require_once __DIR__ . '/inc/actions.php'; // سبد، سفارش، عملیات مدیریت
 
 $page = preg_replace('/[^a-z_]/', '', get('page', 'home'));
@@ -55,6 +56,8 @@ $routeMap = [
     'admin_reports'       => ['view' => 'views/admin/reports.php', 'layout' => 'admin', 'title' => 'گزارش‌های فروش', 'role' => 'admin'],
     'admin_notifications' => ['view' => 'views/admin/notifications.php', 'layout' => 'admin', 'title' => 'اعلان‌های مدیریت', 'role' => 'admin'],
     'admin_settings'      => ['view' => 'views/admin/settings.php', 'layout' => 'admin', 'title' => 'تنظیمات فروشگاه', 'role' => 'admin'],
+    'admin_control'       => ['view' => 'views/admin/control.php', 'layout' => 'admin', 'title' => 'مرکز مدیریت سایت', 'role' => 'admin'],
+
     'admin_logs'          => ['view' => 'views/admin/logs.php', 'layout' => 'admin', 'title' => 'گزارش رویدادها', 'role' => 'admin'],
     'admin_profile'       => ['view' => 'views/admin/profile.php', 'layout' => 'admin', 'title' => 'پروفایل مدیر', 'role' => 'admin'],
 ];
@@ -86,6 +89,10 @@ if (in_array($page, ['login', 'register'], true) && is_logged_in()) {
 }
 
 $pageTitle = $route['title'];
+$editablePageTitles = ['home', 'about', 'contact', 'rfq', 'register'];
+if (in_array($page, $editablePageTitles, true)) {
+    $pageTitle = site_content('page_title_' . $page, $pageTitle);
+}
 $currentPage = $page;
 $flashes = take_flashes();
 $cartCount = cart_count();

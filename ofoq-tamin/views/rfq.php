@@ -1,6 +1,11 @@
 <?php
 /** فرم عمومی استعلام قیمت پروژه (RFQ) */
 $me = current_user();
+$rfqBenefitItems = site_content_items('rfq_benefits', [
+    '✅ مشاور فنی تأمین کالا داریم',
+    '✅ صدور صورتحساب رسمی با شناسه یکتای مؤدیان',
+    '✅ ارسال مستقیم به کارگاه‌های پروژه در سراسر کشور',
+]);
 $doneCode = get('done');
 $doneRfq = null;
 $doneAttachments = [];
@@ -49,9 +54,9 @@ $rfqItemRows = rfq_form_item_rows($itemSource);
 <?php if ($doneCode): ?>
   <div class="success-box compact">
     <div class="success-icon" aria-hidden="true">📋</div>
-    <h2>استعلام شما ثبت شد</h2>
-    <p>کد پیگیری استعلام: <strong class="mono"><?= e($doneCode) ?></strong></p>
-    <p class="mini-note">کارشناسان فروش تا حداکثر ۲۴ ساعت کاری پیش‌فاکتور سازمانی را در پنل خریدار ثبت می‌کنند.</p>
+    <h2><?= e(site_content('rfq_done_heading', 'استعلام شما ثبت شد')) ?></h2>
+    <p><?= e(site_content('rfq_done_code_label', 'کد پیگیری استعلام:')) ?> <strong class="mono"><?= e($doneCode) ?></strong></p>
+    <p class="mini-note"><?= nl2br(e(site_content('rfq_done_note', 'کارشناسان فروش تا حداکثر ۲۴ ساعت کاری پیش‌فاکتور سازمانی را در پنل خریدار ثبت می‌کنند.'))) ?></p>
     <?php if (is_logged_in()): ?>
       <a class="btn btn-secondary btn-sm" href="index.php?page=panel_rfqs">مشاهده استعلام‌های من</a>
     <?php endif; ?>
@@ -73,10 +78,8 @@ $rfqItemRows = rfq_form_item_rows($itemSource);
 
 <div class="rfq-layout">
   <div class="card rfq-box">
-    <h1 class="sec-title">استعلام قیمت پروژه</h1>
-    <p class="sec-sub">
-      اقلام پروژه و راه‌های تماس را ثبت کنید؛ کارشناسان فروش بر اساس درخواست شما پیش‌فاکتور سازمانی را آماده می‌کنند.
-    </p>
+    <h1 class="sec-title"><?= e(site_content('rfq_heading', 'استعلام قیمت پروژه')) ?></h1>
+    <p class="sec-sub"><?= nl2br(e(site_content('rfq_intro', 'اقلام پروژه و راه‌های تماس را ثبت کنید؛ کارشناسان فروش بر اساس درخواست شما پیش‌فاکتور را آماده می‌کنند.'))) ?></p>
 
     <?php if (!$me): ?>
       <div class="alert info">
@@ -114,19 +117,17 @@ $rfqItemRows = rfq_form_item_rows($itemSource);
       <?php require __DIR__ . '/partials/rfq_attachment_field.php'; ?>
 
       <div class="form-actions">
-        <button class="btn btn-orange btn-lg" type="submit">📤 ارسال استعلام رسمی</button>
-        <span class="mini-note">پاسخ‌دهی حداکثر ۲۴ ساعت کاری</span>
+        <button class="btn btn-orange btn-lg" type="submit"><?= e(site_content('rfq_submit_label', '📤 ارسال استعلام رسمی')) ?></button>
+        <span class="mini-note"><?= e(site_content('rfq_response_note', 'پاسخ‌دهی حداکثر ۲۴ ساعت کاری')) ?></span>
       </div>
     </form>
   </div>
 
   <aside class="side-column">
     <div class="card">
-      <h2 class="card-title">مزایای خرید سازمانی</h2>
+      <h2 class="card-title"><?= e(site_content('rfq_benefits_heading', 'اطلاعات خرید سازمانی')) ?></h2>
       <ul class="feature-list">
-        <li>✅ مشاور فنی تأمین کالا داریم</li>
-        <li>✅ صدور صورتحساب رسمی با شناسه یکتای مؤدیان</li>
-        <li>✅ ارسال مستقیم به کارگاه‌های پروژه در سراسر کشور</li>
+        <?php foreach ($rfqBenefitItems as $benefit): ?><li><?= e($benefit) ?></li><?php endforeach; ?>
       </ul>
     </div>
 

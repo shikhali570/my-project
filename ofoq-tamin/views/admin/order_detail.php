@@ -18,6 +18,13 @@ $rows = $items->fetchAll();
 $inv = $db->prepare('SELECT * FROM invoices WHERE order_id = ?');
 $inv->execute([$id]);
 $invoice = $inv->fetch();
+$lastMellatAttempt = $order['payment_method'] === 'mellat' ? mellat_latest_attempt($db, $id) : null;
+$attemptStateLabels = [
+    'initiating' => 'در حال آغاز پرداخت', 'redirected' => 'در انتظار بازگشت از درگاه',
+    'verification_pending' => 'در انتظار تأیید بانکی', 'verified' => 'تأیید اولیه؛ در انتظار تسویه',
+    'settle_pending' => 'در انتظار تسویه نهایی', 'request_failed' => 'شروع پرداخت ناموفق',
+    'declined' => 'پرداخت تکمیل نشد', 'verify_failed' => 'تأیید پرداخت ناموفق', 'paid' => 'پرداخت تأیید شده',
+];
 
 $customer = null;
 if ($order['user_id']) {
@@ -126,7 +133,7 @@ $currentIdx = array_search($order['status'], $steps, true);
           </div>
           <div class="input-group">
             <label>روش پرداخت ثبت‌شده</label>
-            <input type="text" value="<?= $order['payment_method'] === 'credit' ? 'تسویه اعتباری' : ($order['payment_method'] === 'wallet' ? 'اعتبار کارپوشه' : 'انتقال بانکی') ?>" disabled>
+            <input type="text" value="<?= e(payment_method_label($order['payment_method'])) ?>" disabled>
           </div>
         </div>
         <div class="input-group">
@@ -205,6 +212,13 @@ $currentIdx = array_search($order['status'], $steps, true);
       <div class="kv"><span>نشانی تحویل:</span><strong><?= e($order['address']) ?></strong></div>
       <div class="kv"><span>استان / شهر:</span><strong><?= e(($order['province'] ?: '—') . ' / ' . ($order['city'] ?: '—')) ?></strong></div>
       <div class="kv"><span>شناسه ملی خریدار:</span><strong class="mono"><?= e($order['tax_id'] ?: '—') ?></strong></div>
+      <?php if ($lastMellatAttempt): ?>
+        <div class="kv"><span>وضعیت تلاش ملت:</span><strong><?= e($attemptStateLabels[$lastMellatAttempt['status']] ?? 'ثبت شده') ?></strong></div>
+        <?php if (!empty($lastMellatAttempt['sale_reference_id'])): ?><div class="kv"><span>شماره مرجع بانک:</span><strong class="mono"><?= e($lastMellatAttempt['sale_reference_id']) ?></strong></div><?php endif; ?>
+        <?php if (!empty($lastMellatAttempt['response_code']) || !empty($lastMellatAttempt['verify_code']) || !empty($lastMellatAttempt['settle_code'])): ?>
+          <div class="mini-note">کدهای درگاه: شروع <?= e($lastMellatAttempt['response_code'] ?: '—') ?>، تأیید <?= e($lastMellatAttempt['verify_code'] ?: '—') ?>، تسویه <?= e($lastMellatAttempt['settle_code'] ?: '—') ?></div>
+        <?php endif; ?>
+      <?php endif; ?>
       <?php if ($order['note']): ?>
         <div class="kv"><span>توضیح خریدار:</span><strong><?= e($order['note']) ?></strong></div>
       <?php endif; ?>

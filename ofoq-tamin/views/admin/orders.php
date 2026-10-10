@@ -117,6 +117,7 @@ $filteredTotal = (int)$sumFiltered->fetchColumn();
             <span class="pill <?= $o['payment_status'] === 'paid' ? 'success' : ($o['payment_status'] === 'refunded' ? 'danger' : 'warn') ?>">
               <?= e(payment_status_label($o['payment_status'])) ?>
             </span>
+            <div class="mini-note"><?= e(payment_method_label($o['payment_method'])) ?></div>
           </td>
           <td><span class="status <?= order_status_class($o['status']) ?>"><?= order_status_icon($o['status']) ?> <?= e(order_status_label($o['status'])) ?></span></td>
           <td>

@@ -68,33 +68,30 @@ $filtersActive = $q || $brand || $priceMax || $onlyAvailable || $sort !== 'newes
   <section class="hero hero--catalog" aria-labelledby="catalog-hero-title">
     <div class="hero-grid">
       <div class="hero-copy">
-        <span class="hero-badge"><span aria-hidden="true">▤</span> هر سفارش با صورتحساب الکترونیکی رسمی</span>
-        <h1 id="catalog-hero-title">تجهیزات مهندسی و دفتر فنی پروژه، با فاکتور رسمی</h1>
-        <p>
-          متر و تراز لیزری، رول پلاتر، تجهیزات HSE و لوازم اداری؛ هر کالا با شناسه مالیاتی،
-          و هر سفارش با صورتحساب الکترونیکی در کارپوشه شما. ارسال به سراسر کشور.
-        </p>
+        <span class="hero-badge"><span aria-hidden="true">▤</span> <?= e(site_content('home_hero_badge', 'هر سفارش با صورتحساب الکترونیکی رسمی')) ?></span>
+        <h1 id="catalog-hero-title"><?= e(site_content('home_hero_title', 'تجهیزات مهندسی و دفتر فنی پروژه، با فاکتور رسمی')) ?></h1>
+        <p><?= nl2br(e(site_content('home_hero_text', 'متر و تراز لیزری، رول پلاتر، تجهیزات HSE و لوازم اداری؛ هر کالا با شناسه مالیاتی، و هر سفارش با صورتحساب الکترونیکی در کارپوشه شما. ارسال به سراسر کشور.'))) ?></p>
         <div class="hero-actions">
-          <a class="btn btn-primary" href="#catalog">مشاهده کالاها <span aria-hidden="true">←</span></a>
-          <a class="btn btn-outline" href="index.php?page=rfq">استعلام قیمت پروژه</a>
+          <a class="btn btn-primary" href="#catalog"><?= e(site_content('home_cta_catalog', 'مشاهده کالاها')) ?> <span aria-hidden="true">←</span></a>
+          <a class="btn btn-outline" href="index.php?page=rfq"><?= e(site_content('home_cta_rfq', 'استعلام قیمت پروژه')) ?></a>
         </div>
       </div>
       <div class="hero-cards" aria-label="اطلاعات فروشگاه">
         <div class="hero-card">
           <strong><?= fa_num($db->query("SELECT COUNT(*) FROM products WHERE is_active = 1")->fetchColumn()) ?></strong>
-          <span>قلم کالای فعال با شناسه مالیاتی</span>
+          <span><?= e(site_content('home_stat_products_label', 'قلم کالای فعال با شناسه مالیاتی')) ?></span>
         </div>
         <div class="hero-card">
           <strong><?= fa_num((int)$db->query("SELECT COUNT(*) FROM users WHERE role = 'buyer'")->fetchColumn()) ?></strong>
-          <span>خریدار</span>
+          <span><?= e(site_content('home_stat_buyers_label', 'خریدار')) ?></span>
         </div>
         <div class="hero-card">
           <strong><?= fa_num((int)$db->query('SELECT COUNT(*) FROM orders')->fetchColumn()) ?></strong>
-          <span>سفارش ثبت‌شده با فاکتور رسمی</span>
+          <span><?= e(site_content('home_stat_orders_label', 'سفارش ثبت‌شده با فاکتور رسمی')) ?></span>
         </div>
         <div class="hero-card">
-          <strong>۲۴ ساعت</strong>
-          <span>پاسخ‌دهی کارشناسان به استعلام قیمت</span>
+          <strong><?= e(site_content('home_stat_support_value', '۲۴ ساعت')) ?></strong>
+          <span><?= e(site_content('home_stat_support_label', 'پاسخ‌دهی کارشناسان به استعلام قیمت')) ?></span>
         </div>
       </div>
     </div>
@@ -108,7 +105,7 @@ $filtersActive = $q || $brand || $priceMax || $onlyAvailable || $sort !== 'newes
       <?php if ($cat): ?>
         <a class="catalog-back" href="index.php?page=home">→ همه تجهیزات</a>
       <?php endif; ?>
-      <h2 class="sec-title"><?= $activeCat ? e($activeCat) : 'تجهیزات و ادوات مهندسی' ?></h2>
+      <h2 class="sec-title"><?= $activeCat ? e($activeCat) : e(site_content('home_catalog_heading', 'تجهیزات و ادوات مهندسی')) ?></h2>
       <p class="sec-sub" aria-live="polite">
         <?= fa_num($total) ?> کالا<?= $q ? ' برای «' . e($q) . '»' : '' ?><?= $onlyAvailable ? ' · فقط کالاهای موجود' : '' ?>
       </p>
@@ -190,7 +187,7 @@ $filtersActive = $q || $brand || $priceMax || $onlyAvailable || $sort !== 'newes
 <?php if (!$cat && !$q): ?>
   <section class="sec-block">
     <div class="sec-head">
-      <h2 class="sec-title">پرفروش‌ترین کالاها</h2>
+      <h2 class="sec-title"><?= e(site_content('home_featured_heading', 'پرفروش‌ترین کالاها')) ?></h2>
       <a class="link-more" href="<?= e(page_link('home', ['sort' => 'popular', 'p' => 1])) ?>">مشاهده همه ←</a>
     </div>
     <div class="mini-grid">
@@ -209,7 +206,7 @@ $filtersActive = $q || $brand || $priceMax || $onlyAvailable || $sort !== 'newes
 
   <section class="sec-block">
     <div class="sec-head">
-      <h2 class="sec-title">گروه‌های کالایی</h2>
+      <h2 class="sec-title"><?= e(site_content('home_categories_heading', 'گروه‌های کالایی')) ?></h2>
     </div>
     <div class="cat-grid">
       <?php foreach ($navCategories as $c):
@@ -226,10 +223,10 @@ $filtersActive = $q || $brand || $priceMax || $onlyAvailable || $sort !== 'newes
 
   <section class="cta-band">
     <div>
-      <h3>برای پروژه‌تان پیش‌فاکتور رسمی لازم دارید؟</h3>
-      <p>فهرست اقلام و مقادیر را ثبت کنید؛ کارشناسان تدارکات با اعمال تخفیف سازمانی، پیش‌فاکتور رسمی با شناسه مالیاتی صادر می‌کنند.</p>
+      <h3><?= e(site_content('home_cta_band_title', 'برای تأمین اقلام پروژه به مشاور نیاز دارید؟')) ?></h3>
+      <p><?= nl2br(e(site_content('home_cta_band_text', 'فهرست اقلام و مقادیر را ثبت کنید؛ مشاور فنی تأمین کالا به انتخاب اقلام و پیگیری استعلام شما کمک می‌کند.'))) ?></p>
     </div>
-    <a class="btn btn-orange btn-lg" href="index.php?page=rfq">ثبت استعلام قیمت پروژه</a>
+    <a class="btn btn-orange btn-lg" href="index.php?page=rfq"><?= e(site_content('home_cta_band_button', 'ثبت استعلام قیمت پروژه')) ?></a>
   </section>
 <?php endif; ?>
 </div><!-- storefront-page -->

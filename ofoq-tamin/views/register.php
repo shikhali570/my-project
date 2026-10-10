@@ -4,14 +4,19 @@ $old = $_SESSION['old_register'] ?? [];
 unset($_SESSION['old_register']);
 $entityType = in_array(($old['entity_type'] ?? ''), ['individual', 'legal'], true) ? $old['entity_type'] : '';
 $provinces = ['تهران', 'البرز', 'اصفهان', 'خراسان رضوی', 'فارس', 'آذربایجان شرقی', 'گیلان', 'مازندران', 'خوزستان', 'کرمان', 'یزد', 'قم', 'هرمزگان', 'سایر استان‌ها'];
+$registerBenefits = site_content_items('register_benefits', [
+    '🧾 صورتحساب الکترونیکی معتبر و قابل استناد در ممیزی مالیاتی',
+    '🚚 ارسال به کارگاه‌های پروژه در سراسر کشور',
+    '🤝 مشاور فنی تأمین کالا داریم',
+]);
 ?>
 <div class="auth-layout">
   <div class="auth-card-full">
     <div class="auth-head">
       <div class="logo-icon" aria-hidden="true">📝</div>
       <div>
-        <h1>ثبت‌نام خریدار حقیقی یا حقوقی</h1>
-        <p>اطلاعات هویتی و نشانی لازم برای ثبت خریدار و صدور صورتحساب الکترونیکی را وارد کنید.</p>
+        <h1><?= e(site_content('register_heading', 'ثبت‌نام خریدار حقیقی یا حقوقی')) ?></h1>
+        <p><?= nl2br(e(site_content('register_intro', 'اطلاعات هویتی و نشانی لازم برای ثبت خریدار و صدور صورتحساب الکترونیکی را وارد کنید.'))) ?></p>
       </div>
     </div>
 
@@ -118,14 +123,12 @@ $provinces = ['تهران', 'البرز', 'اصفهان', 'خراسان رضوی
   </div>
 
   <aside class="auth-side">
-    <h2>چرا خرید از پارس سازه؟</h2>
+    <h2><?= e(site_content('register_side_title', 'چرا از ' . settings('site_name') . ' خرید کنید؟')) ?></h2>
     <ul class="feature-list">
-      <li>🧾 صورتحساب الکترونیکی معتبر و قابل استناد در ممیزی مالیاتی</li>
-      <li>🚚 ارسال به کارگاه‌های پروژه در سراسر کشور</li>
-      <li>🤝 مشاور فنی تأمین کالا داریم</li>
+      <?php foreach ($registerBenefits as $benefit): ?><li><?= e($benefit) ?></li><?php endforeach; ?>
     </ul>
     <div class="side-note">
-      اطلاعات کارپوشه شما فقط برای صدور اسناد رسمی استفاده می‌شود و در اختیار شخص ثالث قرار نمی‌گیرد.
+      <?= nl2br(e(site_content('register_privacy_note', 'اطلاعات کارپوشه شما فقط برای صدور اسناد رسمی استفاده می‌شود و در اختیار شخص ثالث قرار نمی‌گیرد.'))) ?>
     </div>
   </aside>
 </div>

@@ -22,6 +22,9 @@ $menuGroups = [
         'admin_reports'        => ['▥', 'گزارش‌های فروش'],
         'admin_notifications' => ['◉', 'اعلان‌ها', $adminUnread],
     ],
+    'مدیریت محتوا' => [
+        'admin_control' => ['✎', 'مرکز مدیریت سایت'],
+    ],
     'سیستم' => [
         'admin_logs'     => ['⌑', 'گزارش رویدادها'],
         'admin_settings' => ['⚙', 'تنظیمات فروشگاه'],

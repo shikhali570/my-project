@@ -129,6 +129,24 @@ function install_schema(PDO $db)
         status TEXT DEFAULT 'ثبت قطعی در سامانه مؤدیان'
     )";
 
+    // تلاش‌های پرداخت آنلاین؛ شناسه و پاسخ‌های درگاه برای بررسی و جلوگیری از پرداخت تکراری
+    $tables['payment_attempts'] = "CREATE TABLE IF NOT EXISTS payment_attempts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id INTEGER NOT NULL,
+        provider TEXT NOT NULL,
+        gateway_order_id INTEGER UNIQUE,
+        ref_id TEXT,
+        sale_reference_id TEXT,
+        credential_enc TEXT,
+        status TEXT NOT NULL DEFAULT 'initiating',
+        response_code TEXT,
+        verify_code TEXT,
+        settle_code TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT,
+        paid_at TEXT
+    )";
+
     // استعلام قیمت (RFQ)
     $tables['rfqs'] = "CREATE TABLE IF NOT EXISTS rfqs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -232,6 +250,7 @@ function install_schema(PDO $db)
         'CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id)',
         'CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)',
         'CREATE INDEX IF NOT EXISTS idx_items_order ON order_items(order_id)',
+        'CREATE INDEX IF NOT EXISTS idx_payment_attempt_order ON payment_attempts(order_id, id)',
         'CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id, is_read)',
         'CREATE INDEX IF NOT EXISTS idx_rfq_user ON rfqs(user_id)',
     ] as $idx) {
@@ -253,6 +272,15 @@ function install_schema(PDO $db)
         'bank_info'        => 'بانک ملت | شبا: IR۱۲ ۰۱۲۰ ۰۰۰۰ ۰۰۰۰ ۱۲۳۴ ۵۶۷۸ ۹۰ | به نام شرکت پارس سازه و آفیس',
         'invoice_prefix'   => 'PSA',
         'work_hours'       => 'شنبه تا چهارشنبه ۸ الی ۱۷:۳۰ | پنجشنبه ۸ الی ۱۳',
+        'site_url'         => '',
+        'announcement_enabled' => '0',
+        'announcement_title' => 'اطلاعیه',
+        'announcement_body'  => '',
+        'announcement_link'  => '',
+        'mellat_enabled'   => '0',
+        'mellat_terminal_id' => '',
+        'mellat_username' => '',
+        'mellat_password_enc' => '',
     ];
     $stmt = $db->prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
     foreach ($defaults as $k => $v) {

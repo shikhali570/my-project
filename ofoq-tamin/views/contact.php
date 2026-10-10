@@ -1,6 +1,6 @@
 <?php /** تماس با واحد فروش و پشتیبانی */ ?>
-<h1 class="sec-title" style="margin-bottom:6px">تماس با واحد فروش و پشتیبانی فنی</h1>
-<p class="sec-sub" style="margin-bottom:20px">برای استعلام قیمت پروژه‌ای، پیگیری اسناد مالیاتی و پشتیبانی فنی در ساعات کاری با ما در ارتباط باشید.</p>
+<h1 class="sec-title" style="margin-bottom:6px"><?= e(site_content('contact_heading', 'تماس با واحد فروش و پشتیبانی فنی')) ?></h1>
+<p class="sec-sub" style="margin-bottom:20px"><?= nl2br(e(site_content('contact_intro', 'برای استعلام قیمت، پیگیری اسناد مالیاتی و پشتیبانی فنی در ساعات کاری با ما در ارتباط باشید.'))) ?></p>
 
 <div class="grid-3">
   <div class="card contact-card">
@@ -13,7 +13,7 @@
     <span class="ico">✉</span>
     <h4>ایمیل سازمانی</h4>
     <strong><?= e(settings('email')) ?></strong>
-    <p>پاسخ‌دهی حداکثر تا یک روز کاری</p>
+    <p><?= e(site_content('contact_email_note', 'برای پیگیری از طریق ایمیل با ما در تماس باشید.')) ?></p>
   </div>
   <div class="card contact-card">
     <span class="ico">📍</span>
@@ -37,9 +37,9 @@
 
   <div class="card">
     <h3 class="card-title">پرسش‌های پرتکرار خریداران</h3>
-    <details class="faq"><summary>صورتحساب الکترونیکی چه زمانی صادر می‌شود؟</summary><p>به محض ثبت سفارش، صورتحساب نوع ۱ با شناسه یکتا صادر و در کارپوشه مؤدیان شما ثبت می‌شود.</p></details>
-    <details class="faq"><summary>چه روش‌های پرداختی برای سفارش فعال است؟</summary><p>روش‌های پرداخت فعال هنگام ثبت سفارش نمایش داده می‌شوند. تسویه اعتباری ۳۰ روزه در حال حاضر ارائه نمی‌شود.</p></details>
-    <details class="faq"><summary>هزینه ارسال چگونه محاسبه می‌شود؟</summary><p>هزینه ارسال ثابت <?= money(settings('shipping_cost')) ?> است و برای سفارش‌های بالای <?= money(settings('free_shipping_min')) ?> رایگان می‌شود.</p></details>
-    <details class="faq"><summary>آیا کالاها گارانتی دارند؟</summary><p>تمامی ابزارهای دقیق و برقی دارای گارانتی رسمی شرکت واردکننده و خدمات پس از فروش هستند.</p></details>
+    <details class="faq"><summary><?= e(site_content('contact_faq_invoice_q', 'صورتحساب الکترونیکی چه زمانی صادر می‌شود؟')) ?></summary><p><?= nl2br(e(site_content('contact_faq_invoice_a', 'به محض ثبت سفارش، صورتحساب نوع ۱ با شناسه یکتا صادر و در کارپوشه مؤدیان شما ثبت می‌شود.'))) ?></p></details>
+    <details class="faq"><summary><?= e(site_content('contact_faq_payment_q', 'چه روش‌های پرداختی برای سفارش فعال است؟')) ?></summary><p><?= nl2br(e(site_content('contact_faq_payment_a', 'روش‌های پرداخت فعال هنگام ثبت سفارش نمایش داده می‌شوند.'))) ?></p></details>
+    <details class="faq"><summary><?= e(site_content('contact_faq_shipping_q', 'هزینه ارسال چگونه محاسبه می‌شود؟')) ?></summary><p><?= nl2br(e(site_content('contact_faq_shipping_a', 'هزینه ارسال ثابت ' . money(settings('shipping_cost')) . ' است و برای سفارش‌های بالای ' . money(settings('free_shipping_min')) . ' رایگان می‌شود.'))) ?></p></details>
+    <details class="faq"><summary><?= e(site_content('contact_faq_warranty_q', 'آیا کالاها گارانتی دارند؟')) ?></summary><p><?= nl2br(e(site_content('contact_faq_warranty_a', 'شرایط گارانتی هر کالا در صفحهٔ مشخصات همان کالا درج می‌شود.'))) ?></p></details>
   </div>
 </div>

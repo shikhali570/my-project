@@ -201,6 +201,32 @@ function set_setting($key, $value)
     $stmt->execute([$key, (string)$value]);
 }
 
+/** متن قابل‌ویرایش صفحات عمومی؛ پیش‌فرض کد فقط وقتی مقدار تنظیم نشده باشد استفاده می‌شود. */
+function site_content($key, $default = '')
+{
+    $allSettings = settings();
+    $settingKey = 'content_' . $key;
+    return array_key_exists($settingKey, $allSettings) ? (string)$allSettings[$settingKey] : $default;
+}
+
+/** Multiline editor values become a safe, trimmed list of plain-text items. */
+function site_content_items($key, array $defaults = [])
+{
+    $raw = (string)site_content($key, implode("\n", $defaults));
+    $lines = preg_split('/\r\n|\n|\r/u', $raw) ?: [];
+    $items = [];
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line !== '') {
+            $items[] = $line;
+        }
+        if (count($items) >= 20) {
+            break;
+        }
+    }
+    return $items;
+}
+
 function vat_rate()
 {
     return ((float)settings('vat_rate', 10)) / 100;
@@ -1299,6 +1325,7 @@ function payment_method_label($method)
 {
     $labels = [
         'transfer' => 'انتقال بانکی',
+        'mellat'   => 'درگاه آنلاین به‌پرداخت ملت',
         'credit'   => 'تسویه اعتباری',
         'wallet'   => 'اعتبار کارپوشه',
     ];

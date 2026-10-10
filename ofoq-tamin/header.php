@@ -89,6 +89,7 @@ $isBuyerPanel = in_array($currentPage ?? '', $buyerPages, true);
               <a href="index.php?page=admin_orders">□ <span>سفارش‌ها</span></a>
               <a href="index.php?page=admin_products">▧ <span>کالاها</span></a>
               <a href="index.php?page=admin_reports">▥ <span>گزارش‌ها</span></a>
+              <a href="index.php?page=admin_control">✎ <span>مرکز مدیریت</span></a>
               <a href="index.php?page=admin_settings">⚙ <span>تنظیمات</span></a>
             <?php endif; ?>
             <a href="index.php?page=<?= $me['role'] === 'admin' ? 'admin_profile' : 'panel_profile' ?>">◎ <span>کارپوشه / پروفایل</span></a>
@@ -106,6 +107,17 @@ $isBuyerPanel = in_array($currentPage ?? '', $buyerPages, true);
     </div>
   </div>
 </header>
+
+<?php if (settings('announcement_enabled', '0') === '1' && settings('announcement_body', '') !== ''): ?>
+  <?php $announcementLink = safe_local_url(settings('announcement_link', ''), ''); ?>
+  <aside class="site-announcement no-print" role="status" aria-label="اعلان همگانی">
+    <div class="container site-announcement__inner">
+      <strong><?= e(settings('announcement_title', 'اطلاعیه')) ?></strong>
+      <span><?= nl2br(e(settings('announcement_body', ''))) ?></span>
+      <?php if ($announcementLink !== ''): ?><a href="<?= e($announcementLink) ?>">مشاهده جزئیات ←</a><?php endif; ?>
+    </div>
+  </aside>
+<?php endif; ?>
 
 <?php if (!$isBuyerPanel): ?>
   <nav class="nav site-nav no-print" aria-label="دسته‌بندی کالاها">

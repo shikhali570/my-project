@@ -28,11 +28,15 @@ $remaining = ($freeMin > 0) ? max(0, $freeMin - $subtotal) : 0;
 $progress = ($freeMin > 0 && $subtotal > 0) ? min(100, (int)round($subtotal * 100 / $freeMin)) : 0;
 
 $walletOk = $me && (int)$me['credit'] >= (int)$totals['total'];
+$mellatStatus = mellat_gateway_status();
 $selectedPay = $fieldVal('payment_method', 'transfer');
-if (!in_array($selectedPay, ['transfer', 'wallet'], true)) {
+if (!in_array($selectedPay, ['transfer', 'wallet', 'mellat'], true)) {
     $selectedPay = 'transfer';
 }
 if ($selectedPay === 'wallet' && !$walletOk) {
+    $selectedPay = 'transfer';
+}
+if ($selectedPay === 'mellat' && !$mellatStatus['ready']) {
     $selectedPay = 'transfer';
 }
 
@@ -244,6 +248,16 @@ foreach ($errs as $key => $msg) {
                 <small>پس از ثبت سفارش، از طریق کارت به کارت یا پایا پرداخت کنید.</small>
               </span>
             </label>
+
+            <?php if ($mellatStatus['ready']): ?>
+              <label class="pay-option<?= $selectedPay === 'mellat' ? ' selected' : '' ?>" for="pay-mellat">
+                <input id="pay-mellat" type="radio" name="payment_method" value="mellat"<?= $selectedPay === 'mellat' ? ' checked' : '' ?>>
+                <span>
+                  <strong>پرداخت آنلاین به‌پرداخت ملت</strong>
+                  <small>پرداخت در درگاه بانکی؛ وضعیت سفارش پس از تأیید نهایی بانک به‌روزرسانی می‌شود.</small>
+                </span>
+              </label>
+            <?php endif; ?>
 
             <label class="pay-option<?= $selectedPay === 'wallet' ? ' selected' : '' ?><?= $walletOk ? '' : ' is-disabled' ?>" for="pay-wallet">
               <input id="pay-wallet" type="radio" name="payment_method" value="wallet"<?= $selectedPay === 'wallet' ? ' checked' : '' ?><?= $walletOk ? '' : ' disabled' ?>>

@@ -28,6 +28,14 @@ $steps = order_timeline_steps();
 $currentIdx = array_search($order['status'], $steps, true);
 $vatPercent = fa_num((float)settings('vat_rate', 10), 0);
 $canCancel = in_array($order['status'], ['pending', 'approved'], true);
+$lastMellatAttempt = $order['payment_method'] === 'mellat' ? mellat_latest_attempt($db, (int)$order['id']) : null;
+$attemptStateLabels = [
+    'redirected' => 'در انتظار بازگشت از درگاه', 'verifying' => 'در حال بررسی پاسخ درگاه', 'verification_pending' => 'در انتظار تأیید بانکی',
+    'verified' => 'تأیید اولیه؛ در انتظار تسویه', 'settle_pending' => 'در انتظار تسویه نهایی',
+    'request_failed' => 'شروع پرداخت ناموفق', 'declined' => 'پرداخت تکمیل نشد',
+    'verify_failed' => 'تأیید پرداخت ناموفق', 'paid' => 'پرداخت تأیید شده',
+];
+$canContinueMellat = $order['payment_method'] === 'mellat' && $order['payment_status'] !== 'paid' && $order['status'] !== 'canceled';
 ?>
 
 <a class="back-link" href="index.php?page=panel_orders">→ همه سفارش‌ها</a>
@@ -97,7 +105,11 @@ $canCancel = in_array($order['status'], ['pending', 'approved'], true);
       <div class="kv"><span>تماس:</span><strong class="mono"><?= e($order['phone']) ?></strong></div>
       <div class="kv"><span>شناسه ملی:</span><strong class="mono"><?= e($order['tax_id'] ?: '—') ?></strong></div>
       <div class="kv"><span>نشانی:</span><strong><?= e($order['address']) ?></strong></div>
-      <div class="kv"><span>روش پرداخت:</span><strong><?= $order['payment_method'] === 'credit' ? 'تسویه اعتباری' : ($order['payment_method'] === 'wallet' ? 'کسر از اعتبار کارپوشه' : 'انتقال بانکی') ?></strong></div>
+      <div class="kv"><span>روش پرداخت:</span><strong><?= e(payment_method_label($order['payment_method'])) ?></strong></div>
+      <?php if ($lastMellatAttempt): ?>
+        <div class="kv"><span>وضعیت تلاش پرداخت:</span><strong><?= e($attemptStateLabels[$lastMellatAttempt['status']] ?? 'ثبت شده') ?></strong></div>
+        <?php if (!empty($lastMellatAttempt['sale_reference_id'])): ?><div class="kv"><span>شماره مرجع بانک:</span><strong class="mono"><?= e($lastMellatAttempt['sale_reference_id']) ?></strong></div><?php endif; ?>
+      <?php endif; ?>
       <div class="kv"><span>کد رهگیری مرسوله:</span><strong class="mono"><?= e($order['tracking_code'] ?: 'در انتظار ارسال') ?></strong></div>
       <?php if ($order['note']): ?>
         <div class="kv"><span>توضیحات شما:</span><strong><?= e($order['note']) ?></strong></div>
@@ -121,6 +133,14 @@ $canCancel = in_array($order['status'], ['pending', 'approved'], true);
       <?php endif; ?>
 
       <div class="action-row">
+        <?php if ($canContinueMellat): ?>
+          <form method="POST" action="index.php" class="inline-payment-action">
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="mellat_continue">
+            <input type="hidden" name="order_id" value="<?= (int)$order['id'] ?>">
+            <button class="btn btn-sm btn-primary" type="submit">ادامه پرداخت / تلاش دوباره</button>
+          </form>
+        <?php endif; ?>
         <?php if ($canCancel): ?>
           <button class="btn btn-sm btn-danger" type="button" data-confirm="آیا از لغو این سفارش مطمئن هستید؟" data-form="cancelForm">لغو سفارش</button>
         <?php endif; ?>

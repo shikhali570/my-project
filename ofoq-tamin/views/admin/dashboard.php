@@ -41,6 +41,11 @@ if ((int)$stats['low_stock'] > 0) {
   <?php endif; ?>
 </section>
 
+<div class="action-row admin-dashboard-tools">
+  <a class="btn btn-primary" href="index.php?page=admin_control">✎ بازکردن مرکز مدیریت سایت</a>
+  <a class="btn btn-secondary" href="index.php?page=admin_settings">⚙ تنظیمات پیشرفته</a>
+</div>
+
 <div class="kpi-grid">
   <div class="kpi-card">
     <span class="kpi-ico blue">💰</span>

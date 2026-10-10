@@ -1280,3 +1280,42 @@ body.admin-body { background: #f1eee7; color: #252b2e; }
 @media (max-width: 540px) {
   .buyer-type-options { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* اعلان همگانی و مرکز مدیریت محتوا / پرداخت */
+.site-announcement { color: #27455a; background: #edf5fa; border-block: 1px solid #dbe8f0; }
+.site-announcement__inner { display: flex; align-items: center; gap: 12px; padding-block: 10px; }
+.site-announcement__inner strong { flex: none; font-size: 12px; font-weight: 900; }
+.site-announcement__inner > span { min-width: 0; flex: 1; line-height: 1.8; font-size: 12px; }
+.site-announcement__inner a { flex: none; color: #315d7e; font-weight: 800; font-size: 11px; }
+.site-announcement__inner a:hover { text-decoration: underline; }
+.control-form { display: grid; gap: 4px; }
+.control-form .form-section { min-width: 0; }
+.control-page-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.control-page-card { min-width: 0; padding: 14px; border: 1px solid #e1e8ed; border-radius: 14px; background: #fbfcfd; }
+.control-page-card legend { padding-inline: 8px; color: #315d7e; font-size: 12px; font-weight: 900; }
+.control-page-card .input-group { margin-bottom: 9px; }
+.control-page-card .input-group:last-child { margin-bottom: 0; }
+.control-page-card textarea { min-height: 68px; resize: vertical; }
+.control-page-card .grid-2 { gap: 8px; }
+.check-row { display: flex; align-items: flex-start; gap: 10px; margin: 9px 0 13px; padding: 11px 13px; border: 1px solid #e1e8ed; border-radius: 11px; background: #f8fafb; cursor: pointer; color: #374c59; font-size: 12px; line-height: 1.8; }
+.check-row input { flex: none; margin: 4px 0 0; accent-color: #315d7e; }
+.check-row--danger { border-color: #efd5d1; background: #fff8f7; color: #8f3932; }
+.gateway-status { margin: 8px 0 13px; padding: 12px 14px; border: 1px solid #dfd9c7; border-radius: 12px; background: #fff9e9; color: #6b5429; font-size: 12px; line-height: 1.85; }
+.gateway-status.is-ready { border-color: #c7e0d1; background: #eff8f1; color: #315d42; }
+.gateway-status ul { margin: 5px 18px 0 0; padding: 0; }
+.gateway-status li { margin-top: 2px; }
+.gateway-status strong { font-weight: 900; }
+.control-links { margin-top: 18px; }
+.control-links .action-card { text-decoration: none; transition: border-color .16s, background .16s, transform .16s; }
+.control-links .action-card:hover { border-color: #9eb8ca; background: #f2f7fa; transform: translateY(-1px); }
+.control-links .action-card strong { color: #315d7e; }
+.control-links .action-card span { font-size: 11px; line-height: 1.7; font-weight: 500; }
+.broadcast-form { display: grid; gap: 10px; }
+.inline-payment-action { display: inline-flex; margin: 8px 0; }
+.admin-dashboard-tools { margin: 0 0 16px; }
+@media (max-width: 760px) {
+  .control-page-grid { grid-template-columns: minmax(0, 1fr); }
+  .site-announcement__inner { align-items: flex-start; flex-wrap: wrap; gap: 4px 10px; }
+  .site-announcement__inner > span { flex-basis: calc(100% - 110px); }
+  .site-announcement__inner a { margin-inline-start: auto; }
+}

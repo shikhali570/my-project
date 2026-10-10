@@ -6,7 +6,7 @@
 
 $act = $_POST['action'] ?? $_GET['action'] ?? '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $act !== '') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $act !== '' && $act !== 'mellat_callback') {
     csrf_guard();
 }
 
@@ -16,6 +16,155 @@ $PAYMENT_STATUSES = array_keys(payment_statuses());
 $RFQ_STATUSES = array_keys(rfq_statuses());
 
 switch ($act) {
+
+    // callback درگاه از سمت مرورگر/بانک می‌آید و به نشست یا CSRF سایت وابسته نیست؛
+    // هویت پرداخت با شناسه تلاش، RefId و استعلام سروربه‌سرور تأیید می‌شود.
+    case 'mellat_callback': {
+        $requestMethod = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+        if (!in_array($requestMethod, ['GET', 'POST'], true)) {
+            http_response_code(405);
+            header('Allow: GET, POST');
+            exit('روش درخواست مجاز نیست.');
+        }
+        $saleOrderId = en_digits($_POST['SaleOrderId'] ?? $_GET['SaleOrderId'] ?? '');
+        $resCode = en_digits($_POST['ResCode'] ?? $_GET['ResCode'] ?? '');
+        if (!ctype_digit($saleOrderId) || (int)$saleOrderId < 1 || !preg_match('/^[0-9]{1,4}$/', $resCode)) {
+            http_response_code(400);
+            exit('پاسخ درگاه معتبر نیست.');
+        }
+        $stmt = $db->prepare("SELECT pa.*, o.order_no, o.user_id, o.total, o.payment_status, o.status AS order_status
+                              FROM payment_attempts pa JOIN orders o ON o.id = pa.order_id
+                              WHERE pa.provider = 'mellat' AND pa.gateway_order_id = ? LIMIT 1");
+        $stmt->execute([(int)$saleOrderId]);
+        $payment = $stmt->fetch();
+        if (!$payment || $payment['provider'] !== 'mellat') {
+            http_response_code(404);
+            exit('درخواست پرداخت یافت نشد.');
+        }
+        $orderId = (int)$payment['order_id'];
+        $orderNo = (string)$payment['order_no'];
+        $_SESSION['recent_order_id'] = $orderId;
+
+        if ($payment['status'] === 'paid' || $payment['payment_status'] === 'paid') {
+            flash('پرداخت این سفارش قبلاً تأیید شده است.', 'success');
+            redirect('index.php?page=order_success&no=' . rawurlencode($orderNo));
+        }
+
+        if ($resCode !== '0') {
+            $decline = $db->prepare("UPDATE payment_attempts SET status = 'declined', response_code = ?, credential_enc = NULL, updated_at = ? WHERE id = ? AND status = 'redirected'");
+            $decline->execute([$resCode, date('Y-m-d H:i:s'), (int)$payment['id']]);
+            if ($decline->rowCount() === 1) {
+                log_action('mellat_payment_declined', 'order', $orderId, 'درگاه ملت پرداخت سفارش ' . $orderNo . ' را نپذیرفت (کد ' . $resCode . ')');
+            }
+            flash('پرداخت در درگاه تکمیل نشد. سفارش شما ثبت شده است و می‌توانید دوباره برای پرداخت اقدام کنید.', 'info');
+            redirect('index.php?page=order_success&no=' . rawurlencode($orderNo));
+        }
+
+        $refId = trim((string)($_POST['RefId'] ?? $_GET['RefId'] ?? ''));
+        $saleReferenceId = en_digits($_POST['SaleReferenceId'] ?? $_GET['SaleReferenceId'] ?? '');
+        $finalAmount = en_digits($_POST['FinalAmount'] ?? $_GET['FinalAmount'] ?? '');
+        if ($refId === '' || strlen($refId) > 100 || !is_string($payment['ref_id'])
+            || !hash_equals((string)$payment['ref_id'], $refId)
+            || !preg_match('/^[0-9]{1,30}$/', $saleReferenceId)
+            || ($finalAmount !== '' && (!ctype_digit($finalAmount) || (int)$finalAmount !== (int)$payment['total'] * 10))) {
+            http_response_code(400);
+            exit('شناسه‌های پاسخ درگاه با درخواست پرداخت تطابق ندارند.');
+        }
+        $credentials = mellat_attempt_credentials($payment);
+        if (!$credentials) {
+            $db->prepare("UPDATE payment_attempts SET status = 'verification_pending', response_code = ?, updated_at = ? WHERE id = ? AND status != 'paid'")
+                ->execute([$resCode, date('Y-m-d H:i:s'), (int)$payment['id']]);
+            flash('پاسخ درگاه دریافت شد اما اعتبارنامهٔ امن برای تأیید در دسترس نیست؛ با پشتیبانی تماس بگیرید.', 'info');
+            redirect('index.php?page=order_success&no=' . rawurlencode($orderNo));
+        }
+
+        try {
+            $db->beginTransaction();
+            $claim = $db->prepare("UPDATE payment_attempts SET status = 'verifying', updated_at = ?
+                                   WHERE id = ? AND status IN ('redirected', 'verification_pending', 'verified', 'settle_pending')");
+            $claim->execute([date('Y-m-d H:i:s'), (int)$payment['id']]);
+            $claimed = $claim->rowCount() === 1;
+            $db->commit();
+        } catch (Throwable $exception) {
+            if ($db->inTransaction()) $db->rollBack();
+            flash('بررسی پرداخت موقتاً ممکن نیست؛ لطفاً چند لحظه دیگر دوباره تلاش کنید.', 'info');
+            redirect('index.php?page=order_success&no=' . rawurlencode($orderNo));
+        }
+        if (!$claimed) {
+            $latest = mellat_latest_attempt($db, $orderId);
+            if ($latest && $latest['status'] === 'paid') {
+                flash('پرداخت این سفارش قبلاً تأیید شده است.', 'success');
+            } else {
+                flash('پاسخ درگاه در حال بررسی است؛ لطفاً از ایجاد پرداخت تازه خودداری کنید و کمی بعد وضعیت را بررسی کنید.', 'info');
+            }
+            redirect('index.php?page=order_success&no=' . rawurlencode($orderNo));
+        }
+
+        $verifyArgs = [
+            'terminalId' => (int)$credentials['terminal_id'],
+            'userName' => $credentials['username'],
+            'userPassword' => $credentials['password'],
+            'orderId' => (int)$payment['gateway_order_id'],
+            'saleOrderId' => (int)$payment['gateway_order_id'],
+            'saleReferenceId' => $saleReferenceId,
+        ];
+        $verify = mellat_soap_call('bpVerifyRequest', $verifyArgs);
+        if (empty($verify['ok'])) {
+            $db->prepare("UPDATE payment_attempts SET status = 'verification_pending', response_code = ?, verify_code = ?, updated_at = ? WHERE id = ? AND status != 'paid'")
+                ->execute([$resCode, 'transport_error', date('Y-m-d H:i:s'), (int)$payment['id']]);
+            flash('پاسخ بانک دریافت شد؛ تأیید نهایی موقتاً در دسترس نیست. سفارش پرداخت‌شده ثبت نشده؛ لطفاً دوباره از صفحه سفارش اقدام کنید یا با پشتیبانی تماس بگیرید.', 'info');
+            redirect('index.php?page=order_success&no=' . rawurlencode($orderNo));
+        }
+        $verifyCode = trim((string)$verify['value']);
+        if (!in_array($verifyCode, ['0', '42'], true)) {
+            $db->prepare("UPDATE payment_attempts SET status = 'verify_failed', response_code = ?, verify_code = ?, sale_reference_id = ?, credential_enc = NULL, updated_at = ? WHERE id = ? AND status != 'paid'")
+                ->execute([$resCode, $verifyCode, $saleReferenceId, date('Y-m-d H:i:s'), (int)$payment['id']]);
+            log_action('mellat_payment_verify_failed', 'order', $orderId, 'تأیید ملت برای سفارش ' . $orderNo . ' ناموفق بود (کد ' . $verifyCode . ')');
+            flash('بانک نتوانست پرداخت را تأیید کند. سفارش شما ثبت شده و می‌توانید دوباره تلاش کنید.', 'error');
+            redirect('index.php?page=order_success&no=' . rawurlencode($orderNo));
+        }
+        $db->prepare("UPDATE payment_attempts SET status = 'verified', response_code = ?, verify_code = ?, sale_reference_id = ?, updated_at = ? WHERE id = ? AND status != 'paid'")
+            ->execute([$resCode, $verifyCode, $saleReferenceId, date('Y-m-d H:i:s'), (int)$payment['id']]);
+
+        $settle = mellat_soap_call('bpSettleRequest', $verifyArgs);
+        if (empty($settle['ok'])) {
+            $db->prepare("UPDATE payment_attempts SET status = 'settle_pending', settle_code = ?, updated_at = ? WHERE id = ? AND status != 'paid'")
+                ->execute(['transport_error', date('Y-m-d H:i:s'), (int)$payment['id']]);
+            flash('پرداخت در انتظار تأیید نهایی درگاه است. سفارش پرداخت‌شده ثبت نشده؛ صفحه را کمی بعد دوباره بررسی کنید یا با پشتیبانی تماس بگیرید.', 'info');
+            redirect('index.php?page=order_success&no=' . rawurlencode($orderNo));
+        }
+        $settleCode = trim((string)$settle['value']);
+        if (!in_array($settleCode, ['0', '45'], true)) {
+            $db->prepare("UPDATE payment_attempts SET status = 'settle_pending', settle_code = ?, updated_at = ? WHERE id = ? AND status != 'paid'")
+                ->execute([$settleCode, date('Y-m-d H:i:s'), (int)$payment['id']]);
+            log_action('mellat_payment_settle_pending', 'order', $orderId, 'تسویه ملت برای سفارش ' . $orderNo . ' در انتظار بررسی است (کد ' . $settleCode . ')');
+            flash('بانک پرداخت را گرفته اما تسویهٔ نهایی را هنوز تأیید نکرده است؛ وضعیت سفارش فعلاً پرداخت‌نشده می‌ماند. با پشتیبانی تماس بگیرید.', 'info');
+            redirect('index.php?page=order_success&no=' . rawurlencode($orderNo));
+        }
+
+        $now = date('Y-m-d H:i:s');
+        try {
+            $db->beginTransaction();
+            $db->prepare("UPDATE payment_attempts SET status = 'paid', response_code = ?, verify_code = ?, settle_code = ?, sale_reference_id = ?, credential_enc = NULL, updated_at = ?, paid_at = ? WHERE id = ? AND status != 'paid'")
+                ->execute([$resCode, $verifyCode, $settleCode, $saleReferenceId, $now, $now, (int)$payment['id']]);
+            $db->prepare("UPDATE orders SET payment_status = 'paid', updated_at = ? WHERE id = ? AND payment_status != 'paid'")
+                ->execute([$now, $orderId]);
+            $db->commit();
+        } catch (Throwable $exception) {
+            if ($db->inTransaction()) $db->rollBack();
+            $db->prepare("UPDATE payment_attempts SET status = 'settle_pending', settle_code = ?, updated_at = ? WHERE id = ? AND status != 'paid'")
+                ->execute(['database_error', $now, (int)$payment['id']]);
+            flash('درگاه پرداخت را تأیید کرد اما ثبت نتیجه در سامانه با خطا روبه‌رو شد؛ لطفاً با پشتیبانی تماس بگیرید و شماره پیگیری بانک را ارائه کنید.', 'info');
+            redirect('index.php?page=order_success&no=' . rawurlencode($orderNo));
+        }
+        if (!empty($payment['user_id'])) {
+            notify((int)$payment['user_id'], 'پرداخت سفارش ' . $orderNo . ' تأیید شد', 'پرداخت آنلاین سفارش شما توسط به‌پرداخت ملت تأیید شد.', 'index.php?page=panel_order&no=' . $orderNo);
+        }
+        notify_admins('پرداخت آنلاین سفارش ' . $orderNo, 'پرداخت سفارش با درگاه به‌پرداخت ملت تأیید شد.', 'index.php?page=admin_order&id=' . $orderId);
+        log_action('mellat_payment_paid', 'order', $orderId, 'پرداخت سفارش ' . $orderNo . ' با به‌پرداخت ملت تأیید شد؛ شماره مرجع ' . $saleReferenceId);
+        flash('پرداخت شما با موفقیت تأیید شد.', 'success');
+        redirect('index.php?page=order_success&no=' . rawurlencode($orderNo));
+    }
 
     case 'rfq_attachment_download': {
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
@@ -211,8 +360,8 @@ switch ($act) {
         $buyerNationalId = $u ? en_digits($u['national_id'] ?? '') : '';
         $buyerEconomicCode = $entityType === 'legal' && $u ? en_digits($u['economic_code'] ?? '') : '';
 
-        // فقط روش‌های شناخته‌شده پذیرفته می‌شوند
-        $paymentMethod = in_array($input['payment_method'], ['transfer', 'wallet'], true)
+        // فقط روش‌های شناخته‌شده پذیرفته می‌شوند؛ درگاه ملت در سمت سرور هم کنترل می‌شود.
+        $paymentMethod = in_array($input['payment_method'], ['transfer', 'wallet', 'mellat'], true)
             ? $input['payment_method']
             : 'transfer';
 
@@ -239,6 +388,8 @@ switch ($act) {
             } elseif ((int)$u['credit'] < $totals['total']) {
                 $errors['payment_method'] = 'اعتبار کارپوشه شما (' . money($u['credit']) . ') برای پرداخت این سفارش کافی نیست.';
             }
+        } elseif ($paymentMethod === 'mellat' && !mellat_gateway_status()['ready']) {
+            $errors['payment_method'] = 'پرداخت آنلاین موقتاً آماده نیست؛ روش دیگری انتخاب کنید یا با پشتیبانی تماس بگیرید.';
         }
 
         // کنترل موجودی انبار
@@ -300,6 +451,17 @@ switch ($act) {
         }
         notify_admins('سفارش جدید ' . $orderNo, ($company ?: $customer) . ' سفارشی به مبلغ ' . money($totals['total']) . ' ثبت کرد.', 'index.php?page=admin_order&id=' . $orderId);
         log_action('order_create', 'order', $orderId, 'ثبت سفارش ' . $orderNo . ' به مبلغ ' . $totals['total'] . ' تومان');
+        $_SESSION['recent_order_id'] = $orderId;
+
+        if ($paymentMethod === 'mellat') {
+            $paymentStart = mellat_start_order_payment($db, ['id' => $orderId, 'order_no' => $orderNo, 'total' => $totals['total']]);
+            if (!empty($paymentStart['ok'])) {
+                log_action('mellat_payment_start', 'order', $orderId, 'آغاز پرداخت آنلاین سفارش ' . $orderNo . ' در به‌پرداخت ملت');
+                mellat_redirect_to_bank($paymentStart['ref_id']);
+            }
+            flash('سفارش ' . $orderNo . ' ثبت شد، اما شروع پرداخت آنلاین کامل نشد. ' . ($paymentStart['message'] ?? 'می‌توانید از صفحه سفارش دوباره تلاش کنید.'), 'info');
+            redirect('index.php?page=order_success&no=' . rawurlencode($orderNo));
+        }
 
         flash('سفارش شما با شماره ' . $orderNo . ' ثبت شد و صورتحساب الکترونیکی صادر گردید.', 'success');
         redirect('index.php?page=order_success&no=' . $orderNo);
@@ -986,6 +1148,257 @@ switch ($act) {
             flash('عنوان و متن پیام الزامی است.', 'error');
         }
         redirect('index.php?page=admin_user&id=' . $uid);
+    }
+
+    // ================================================== پرداخت آنلاین ملت: شروع مجدد / ادامه امن همان تلاش
+    case 'mellat_continue': {
+        $orderId = (int)post('order_id');
+        $stmt = $db->prepare('SELECT * FROM orders WHERE id = ? LIMIT 1');
+        $stmt->execute([$orderId]);
+        $order = $stmt->fetch();
+        if (!$order) {
+            http_response_code(404);
+            exit('سفارش یافت نشد.');
+        }
+        $u = current_user();
+        $authorized = is_admin()
+            || ($u && !empty($order['user_id']) && (int)$order['user_id'] === (int)$u['id'])
+            || (empty($order['user_id']) && (int)($_SESSION['recent_order_id'] ?? 0) === (int)$order['id']);
+        if (!$authorized) {
+            http_response_code(403);
+            exit('اجازهٔ دسترسی به این پرداخت را ندارید.');
+        }
+        $backUrl = is_admin()
+            ? 'index.php?page=admin_order&id=' . (int)$order['id']
+            : (($u && !empty($order['user_id'])) ? 'index.php?page=panel_order&no=' . rawurlencode($order['order_no']) : 'index.php?page=order_success&no=' . rawurlencode($order['order_no']));
+        if ($order['payment_method'] !== 'mellat') {
+            flash('روش پرداخت این سفارش درگاه ملت نیست.', 'error');
+            redirect($backUrl);
+        }
+        if ($order['payment_status'] === 'paid') {
+            flash('پرداخت این سفارش قبلاً تأیید شده است.', 'success');
+            redirect($backUrl);
+        }
+        if ($order['status'] === 'canceled') {
+            flash('سفارش لغوشده قابل پرداخت نیست؛ با پشتیبانی تماس بگیرید.', 'error');
+            redirect($backUrl);
+        }
+
+        $lastAttempt = mellat_latest_attempt($db, $orderId);
+        if ($lastAttempt && $lastAttempt['status'] === 'initiating') {
+            $startedAt = strtotime((string)($lastAttempt['created_at'] ?? ''));
+            if ($startedAt !== false && $startedAt >= time() - 180) {
+                flash('درخواست پرداخت قبلی هنوز در حال ایجاد است؛ لطفاً چند لحظه دیگر دوباره بررسی کنید.', 'info');
+                redirect($backUrl);
+            }
+            $db->prepare("UPDATE payment_attempts SET status = 'request_failed', response_code = ?, credential_enc = NULL, updated_at = ? WHERE id = ? AND status = 'initiating'")
+                ->execute(['timeout', date('Y-m-d H:i:s'), (int)$lastAttempt['id']]);
+            $lastAttempt = mellat_latest_attempt($db, $orderId);
+        }
+        if ($lastAttempt && $lastAttempt['status'] === 'verifying') {
+            $lastUpdated = strtotime((string)($lastAttempt['updated_at'] ?? ''));
+            if ($lastUpdated !== false && $lastUpdated < time() - 180) {
+                $db->prepare("UPDATE payment_attempts SET status = 'verification_pending', updated_at = ? WHERE id = ? AND status = 'verifying'")
+                    ->execute([date('Y-m-d H:i:s'), (int)$lastAttempt['id']]);
+                $lastAttempt = mellat_latest_attempt($db, $orderId);
+            } else {
+                flash('پاسخ درگاه هنوز در حال بررسی است؛ لطفاً چند لحظه دیگر دوباره وضعیت را بررسی کنید.', 'info');
+                redirect($backUrl);
+            }
+        }
+        if ($lastAttempt && !empty($lastAttempt['ref_id'])
+            && in_array($lastAttempt['status'], ['redirected', 'verification_pending', 'verified', 'settle_pending'], true)) {
+            mellat_redirect_to_bank($lastAttempt['ref_id']);
+        }
+        $paymentStart = mellat_start_order_payment($db, $order);
+        if (!empty($paymentStart['ok'])) {
+            log_action('mellat_payment_start', 'order', $orderId, 'آغاز تلاش پرداخت آنلاین سفارش ' . $order['order_no']);
+            mellat_redirect_to_bank($paymentStart['ref_id']);
+        }
+        flash($paymentStart['message'] ?? 'شروع پرداخت آنلاین ناموفق بود؛ بعداً دوباره تلاش کنید.', 'error');
+        redirect($backUrl);
+    }
+
+    // ================================================== مرکز مدیریت: تنظیمات، اعلان و محتوای صفحات
+    case 'site_control_save': {
+        require_admin();
+        $errors = [];
+        $values = [
+            'site_name' => post('site_name'),
+            'site_slogan' => post('site_slogan'),
+            'phone' => post('phone'),
+            'email' => post('email'),
+            'address' => post('address'),
+            'work_hours' => post('work_hours'),
+            'bank_info' => post('bank_info'),
+            'company_national_id' => post('company_national_id'),
+            'company_economic_code' => post('company_economic_code'),
+            'invoice_prefix' => post('invoice_prefix'),
+        ];
+        $lengthLimits = [
+            'site_name' => 180, 'site_slogan' => 240, 'phone' => 80, 'email' => 254,
+            'address' => 500, 'work_hours' => 180, 'bank_info' => 1200,
+            'company_national_id' => 50, 'company_economic_code' => 80,
+        ];
+        if (mb_strlen($values['site_name'], 'UTF-8') < 2) $errors[] = 'نام فروشگاه را کامل وارد کنید.';
+        foreach ($lengthLimits as $field => $limit) {
+            if (mb_strlen($values[$field], 'UTF-8') > $limit) $errors[] = 'طول یکی از اطلاعات فروشگاه بیش از حد مجاز است.';
+        }
+        if ($values['email'] !== '' && !filter_var($values['email'], FILTER_VALIDATE_EMAIL)) $errors[] = 'نشانی ایمیل معتبر نیست.';
+        if (!preg_match('/^[A-Za-z0-9_-]{1,16}$/', $values['invoice_prefix'])) $errors[] = 'پیش‌شماره صورتحساب باید ۱ تا ۱۶ نویسه لاتین، عدد، خط تیره یا زیرخط باشد.';
+
+        $siteUrlRaw = post('site_url');
+        $siteUrl = mellat_normalize_site_url($siteUrlRaw);
+        if ($siteUrlRaw !== '' && $siteUrl === '') $errors[] = 'نشانی سایت باید یک URL عمومی HTTPS، بدون نام کاربری، پارامتر یا fragment باشد.';
+
+        $vatRaw = en_digits(post('vat_rate'));
+        if (!preg_match('/^[0-9]{1,2}(?:\.[0-9]{1,2})?$/', $vatRaw) || (float)$vatRaw < 0 || (float)$vatRaw > 30) {
+            $errors[] = 'نرخ مالیات باید عددی بین ۰ تا ۳۰ درصد باشد.';
+        }
+        $shippingRaw = en_digits(post('shipping_cost'));
+        $freeShippingRaw = en_digits(post('free_shipping_min'));
+        if (!ctype_digit($shippingRaw) || !ctype_digit($freeShippingRaw)) $errors[] = 'هزینه‌های ارسال باید عدد صحیح و نامنفی باشند.';
+        if (strlen($shippingRaw) > 12 || strlen($freeShippingRaw) > 12) $errors[] = 'مقدار هزینهٔ ارسال بیش از حد مجاز است.';
+
+        $announcementTitle = post('announcement_title');
+        $announcementBody = post('announcement_body');
+        $announcementLink = post('announcement_link');
+        if (mb_strlen($announcementTitle, 'UTF-8') > 120 || mb_strlen($announcementBody, 'UTF-8') > 1200) $errors[] = 'طول اعلان عمومی بیش از حد مجاز است.';
+        if ($announcementLink !== '' && safe_local_url($announcementLink, '') === '') $errors[] = 'پیوند اعلان باید از نوع مسیر داخلی index.php باشد.';
+
+        $terminalId = en_digits(post('mellat_terminal_id'));
+        $mellatUsername = trim(post('mellat_username'));
+        $mellatPassword = isset($_POST['mellat_password']) && is_scalar($_POST['mellat_password']) ? (string)$_POST['mellat_password'] : '';
+        $clearMellatPassword = post('clear_mellat_password') === '1';
+        if ($terminalId !== '' && !preg_match('/^[0-9]{1,20}$/', $terminalId)) $errors[] = 'شماره ترمینال ملت باید فقط شامل رقم باشد.';
+        if (mb_strlen($mellatUsername, 'UTF-8') > 120 || strlen($mellatPassword) > 240) $errors[] = 'طول یکی از مشخصات درگاه ملت بیش از حد مجاز است.';
+        if ($clearMellatPassword && $mellatPassword !== '') $errors[] = 'برای حذف رمز یا جایگزینی آن، یکی از دو روش را انتخاب کنید؛ همزمان هر دو مجاز نیست.';
+
+        $contentFields = [
+            'content_page_title_home' => 180,
+            'content_home_hero_badge' => 180, 'content_home_hero_title' => 240, 'content_home_hero_text' => 1200,
+            'content_home_cta_catalog' => 80, 'content_home_cta_rfq' => 80,
+            'content_home_stat_products_label' => 120, 'content_home_stat_buyers_label' => 120,
+            'content_home_stat_orders_label' => 120, 'content_home_stat_support_value' => 40,
+            'content_home_stat_support_label' => 120, 'content_home_catalog_heading' => 180,
+            'content_home_featured_heading' => 180, 'content_home_categories_heading' => 180,
+            'content_home_cta_band_title' => 240, 'content_home_cta_band_text' => 1000,
+            'content_home_cta_band_button' => 80,
+            'content_page_title_about' => 180, 'content_about_badge' => 180,
+            'content_about_hero_title' => 240, 'content_about_intro' => 1600,
+            'content_about_stat_years_value' => 40, 'content_about_stat_years_label' => 120,
+            'content_about_stat_products_label' => 120, 'content_about_stat_orders_label' => 120,
+            'content_about_stat_compliance_value' => 40, 'content_about_stat_compliance_label' => 120,
+            'content_about_tax_heading' => 180, 'content_about_tax_points' => 1600,
+            'content_about_procurement_heading' => 180, 'content_about_procurement_points' => 1600,
+            'content_about_steps_heading' => 180,
+            'content_about_step_1_title' => 180, 'content_about_step_1_text' => 800,
+            'content_about_step_2_title' => 180, 'content_about_step_2_text' => 800,
+            'content_about_step_3_title' => 180, 'content_about_step_3_text' => 800,
+            'content_about_cta_title' => 240, 'content_about_cta_text' => 800, 'content_about_cta_button' => 80,
+            'content_page_title_contact' => 180, 'content_contact_heading' => 240,
+            'content_contact_intro' => 1000, 'content_contact_email_note' => 300,
+            'content_contact_faq_invoice_q' => 240, 'content_contact_faq_invoice_a' => 800,
+            'content_contact_faq_payment_q' => 240, 'content_contact_faq_payment_a' => 800,
+            'content_contact_faq_shipping_q' => 240, 'content_contact_faq_shipping_a' => 800,
+            'content_contact_faq_warranty_q' => 240, 'content_contact_faq_warranty_a' => 800,
+            'content_page_title_rfq' => 180, 'content_rfq_heading' => 240, 'content_rfq_intro' => 1000,
+            'content_rfq_done_heading' => 180, 'content_rfq_done_code_label' => 180,
+            'content_rfq_done_note' => 800, 'content_rfq_submit_label' => 80,
+            'content_rfq_response_note' => 180, 'content_rfq_benefits_heading' => 180,
+            'content_rfq_benefits' => 1200,
+            'content_page_title_register' => 180, 'content_register_heading' => 240,
+            'content_register_intro' => 1000, 'content_register_side_title' => 180,
+            'content_register_benefits' => 1200, 'content_register_privacy_note' => 800,
+        ];
+        $contentValues = [];
+        foreach ($contentFields as $field => $limit) {
+            if (!isset($_POST[$field]) || !is_scalar($_POST[$field])) continue;
+            $value = trim((string)$_POST[$field]);
+            if (mb_strlen($value, 'UTF-8') > $limit) {
+                $errors[] = 'یکی از متن‌های صفحات عمومی طولانی‌تر از حد مجاز است.';
+                break;
+            }
+            $contentValues[$field] = str_replace(["\r\n", "\r"], "\n", $value);
+        }
+
+        $encryptedPassword = null;
+        if ($mellatPassword !== '') {
+            $encryptedPassword = payment_secret_encrypt($mellatPassword);
+            if (!is_string($encryptedPassword)) $errors[] = 'رمز درگاه به‌صورت امن ذخیره نشد؛ دسترسی نوشتن به پوشه tmp و افزونه OpenSSL را بررسی کنید.';
+        }
+        if ($errors) {
+            flash(implode(' ', array_unique($errors)), 'error');
+            redirect('index.php?page=admin_control');
+        }
+
+        $settingsToSave = $values + [
+            'site_url' => $siteUrl,
+            'vat_rate' => $vatRaw,
+            'shipping_cost' => (string)(int)$shippingRaw,
+            'free_shipping_min' => (string)(int)$freeShippingRaw,
+            'announcement_enabled' => post('announcement_enabled') === '1' ? '1' : '0',
+            'announcement_title' => $announcementTitle !== '' ? $announcementTitle : 'اطلاعیه',
+            'announcement_body' => $announcementBody,
+            'announcement_link' => $announcementLink,
+            'mellat_enabled' => post('mellat_enabled') === '1' ? '1' : '0',
+            'mellat_terminal_id' => $terminalId,
+            'mellat_username' => $mellatUsername,
+        ];
+        if ($encryptedPassword !== null) {
+            $settingsToSave['mellat_password_enc'] = $encryptedPassword;
+        } elseif ($clearMellatPassword) {
+            $settingsToSave['mellat_password_enc'] = '';
+        }
+
+        try {
+            $db->beginTransaction();
+            foreach ($settingsToSave as $key => $value) set_setting($key, $value);
+            foreach ($contentValues as $key => $value) set_setting($key, $value);
+            $db->commit();
+        } catch (Throwable $exception) {
+            if ($db->inTransaction()) $db->rollBack();
+            flash('ذخیره تنظیمات انجام نشد؛ دوباره تلاش کنید.', 'error');
+            redirect('index.php?page=admin_control');
+        }
+        log_action('site_control_update', 'settings', null, 'به‌روزرسانی مرکز مدیریت، محتوای صفحات و پیکربندی درگاه ملت');
+        flash('تغییرات مرکز مدیریت ذخیره شد. رمز درگاه در فرم دوباره نمایش داده نمی‌شود.', 'success');
+        redirect('index.php?page=admin_control');
+    }
+
+    case 'admin_broadcast': {
+        require_admin();
+        $title = post('title');
+        $body = post('body');
+        $link = post('link');
+        if ($title === '' || $body === '' || mb_strlen($title, 'UTF-8') > 160 || mb_strlen($body, 'UTF-8') > 1600) {
+            flash('عنوان و متن اعلان را وارد کنید؛ طول متن بیش از حد مجاز است.', 'error');
+            redirect('index.php?page=admin_control');
+        }
+        if ($link !== '' && safe_local_url($link, '') === '') {
+            flash('پیوند اعلان باید از نوع مسیر داخلی index.php باشد.', 'error');
+            redirect('index.php?page=admin_control');
+        }
+        $link = $link === '' ? 'index.php?page=panel_notifications' : $link;
+        $stmt = $db->query("SELECT id FROM users WHERE role = 'buyer' AND status = 'active'");
+        $insert = $db->prepare('INSERT INTO notifications (user_id, title, body, link, is_read, created_at) VALUES (?, ?, ?, ?, 0, ?)');
+        $now = date('Y-m-d H:i:s');
+        $count = 0;
+        try {
+            $db->beginTransaction();
+            foreach ($stmt as $user) {
+                $insert->execute([(int)$user['id'], $title, $body, $link, $now]);
+                $count++;
+            }
+            $db->commit();
+        } catch (Throwable $exception) {
+            if ($db->inTransaction()) $db->rollBack();
+            flash('ارسال اعلان همگانی انجام نشد؛ دوباره تلاش کنید.', 'error');
+            redirect('index.php?page=admin_control');
+        }
+        log_action('admin_broadcast', 'notification', null, 'ارسال اعلان داخلی همگانی برای ' . $count . ' خریدار فعال');
+        flash('اعلان داخلی برای ' . fa_num($count) . ' خریدار فعال ارسال شد.', 'success');
+        redirect('index.php?page=admin_control');
     }
 
     // ================================================== مدیریت: تنظیمات

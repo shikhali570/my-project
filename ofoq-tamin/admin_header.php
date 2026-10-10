@@ -34,12 +34,13 @@ $menuGroups = [
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#143a32">
+  <meta name="theme-color" content="#172a42">
   <title><?= e($pageTitle) ?> | پنل مدیریت <?= e(settings('site_name')) ?></title>
   <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
   <link rel="stylesheet" href="style.css?v=<?= APP_VERSION ?>">
+  <link rel="stylesheet" href="theme.css?v=<?= APP_VERSION ?>">
 </head>
-<body class="admin-body">
+<body class="admin-body admin-page--<?= e($currentPage ?? 'admin') ?>">
 <a class="skip-link" href="#adminMain">رفتن به محتوای اصلی</a>
 
 <div class="admin-shell">

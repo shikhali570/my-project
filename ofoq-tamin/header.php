@@ -13,13 +13,14 @@ $isBuyerPanel = in_array($currentPage ?? '', $buyerPages, true);
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#143a32">
+  <meta name="theme-color" content="#172a42">
   <title><?= e($pageTitle) ?> | <?= e(settings('site_name', 'پارس سازه و آفیس')) ?></title>
   <meta name="description" content="خرید آنلاین تجهیزات نقشه‌برداری، ایمنی کارگاهی، رول پلاتر و ملزومات دفاتر فنی با صورتحساب الکترونیکی معتبر سامانه مؤدیان.">
   <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
   <link rel="stylesheet" href="style.css?v=<?= APP_VERSION ?>">
+  <link rel="stylesheet" href="theme.css?v=<?= APP_VERSION ?>">
 </head>
-<body class="site-body<?= $isBuyerPanel ? ' buyer-workspace-body' : '' ?>">
+<body class="site-body site-page--<?= e($currentPage ?? 'home') ?><?= $isBuyerPanel ? ' buyer-workspace-body' : '' ?>">
 
 <a class="skip-link" href="#main">رفتن به محتوای اصلی</a>
 
@@ -38,19 +39,6 @@ $isBuyerPanel = in_array($currentPage ?? '', $buyerPages, true);
     </div>
   </div>
 </div>
-
-<?php if (!$isBuyerPanel): ?>
-  <div class="modiyan-strip no-print">
-    <div class="container modiyan-strip__inner">
-      <span class="modiyan-mark" aria-hidden="true">✓</span>
-      <div class="modiyan-copy">
-        <strong>سامانه مؤدیان و پایانه‌های فروشگاهی</strong>
-        <span>صدور آنی صورتحساب الکترونیکی نوع ۱ با شناسه یکتای مالیاتی کالا و انتقال اعتبار ارزش افزوده به کارپوشه خریدار.</span>
-      </div>
-      <a href="index.php?page=about">جزئیات بیشتر <span aria-hidden="true">←</span></a>
-    </div>
-  </div>
-<?php endif; ?>
 
 <header class="header site-header no-print">
   <div class="container site-header__inner">
@@ -134,6 +122,19 @@ $isBuyerPanel = in_array($currentPage ?? '', $buyerPages, true);
   </nav>
 <?php endif; ?>
 
+<?php if (!$isBuyerPanel): ?>
+  <div class="modiyan-strip no-print">
+    <div class="container modiyan-strip__inner">
+      <span class="modiyan-mark" aria-hidden="true">✓</span>
+      <div class="modiyan-copy">
+        <strong>سامانه مؤدیان و پایانه‌های فروشگاهی</strong>
+        <span>صدور آنی صورتحساب الکترونیکی نوع ۱ با شناسه یکتای مالیاتی کالا و انتقال اعتبار ارزش افزوده به کارپوشه خریدار.</span>
+      </div>
+      <a href="index.php?page=about">جزئیات بیشتر <span aria-hidden="true">←</span></a>
+    </div>
+  </div>
+<?php endif; ?>
+
 <?php if (!empty($flashes)): ?>
   <div class="toast-wrap no-print" aria-live="polite">
     <?php foreach ($flashes as $f): ?>
@@ -151,4 +152,4 @@ $isBuyerPanel = in_array($currentPage ?? '', $buyerPages, true);
   </div>
 <?php endif; ?>
 
-<div class="container page-wrapper" id="main" tabindex="-1">
+<main class="container page-wrapper site-main" id="main" tabindex="-1">

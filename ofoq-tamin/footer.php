@@ -1,4 +1,4 @@
-</div> <!-- پایان page-wrapper -->
+</main> <!-- پایان page-wrapper -->
 
 <footer class="site-footer no-print">
   <div class="container footer-grid">

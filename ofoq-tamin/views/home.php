@@ -63,6 +63,7 @@ $activeCat = $cat ? category_title($cat) : null;
 $filtersActive = $q || $brand || $priceMax || $onlyAvailable || $sort !== 'newest';
 ?>
 
+<div class="storefront-page">
 <?php if (!$cat && !$q && !$brand): ?>
   <section class="hero hero--catalog" aria-labelledby="catalog-hero-title">
     <div class="hero-grid">
@@ -237,3 +238,4 @@ $filtersActive = $q || $brand || $priceMax || $onlyAvailable || $sort !== 'newes
     <a class="btn btn-orange btn-lg" href="index.php?page=rfq">ثبت استعلام قیمت پروژه</a>
   </section>
 <?php endif; ?>
+</div><!-- storefront-page -->

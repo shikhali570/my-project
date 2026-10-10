@@ -1,6 +1,6 @@
   </section><!-- panel-main -->
 </div><!-- panel-layout -->
-</div><!-- page-wrapper -->
+</main><!-- page-wrapper -->
 
 <footer class="panel-footer no-print">
   <div class="container panel-footer__inner">

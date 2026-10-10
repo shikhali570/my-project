@@ -131,8 +131,12 @@ function install_schema(PDO $db)
         user_id INTEGER,
         company TEXT NOT NULL,
         phone TEXT NOT NULL,
+        email TEXT,
+        messenger TEXT,
         title TEXT,
         description TEXT NOT NULL,
+        items_json TEXT NOT NULL DEFAULT '[]',
+        attachments_json TEXT NOT NULL DEFAULT '[]',
         status TEXT NOT NULL DEFAULT 'new',
         quote_amount INTEGER,
         admin_reply TEXT,
@@ -203,7 +207,7 @@ function install_schema(PDO $db)
         'products'     => ['sku' => 'TEXT', 'unit' => "TEXT DEFAULT 'عدد'", 'min_stock' => 'INTEGER NOT NULL DEFAULT 5', 'old_price' => 'INTEGER', 'image' => 'TEXT', 'description' => 'TEXT', 'specs' => 'TEXT', 'is_active' => 'INTEGER NOT NULL DEFAULT 1', 'sold' => 'INTEGER NOT NULL DEFAULT 0', 'views' => 'INTEGER NOT NULL DEFAULT 0', 'created_at' => 'TEXT'],
         'orders'       => ['user_id' => 'INTEGER', 'company' => 'TEXT', 'email' => 'TEXT', 'province' => 'TEXT', 'city' => 'TEXT', 'address' => 'TEXT', 'note' => 'TEXT', 'discount' => 'INTEGER NOT NULL DEFAULT 0', 'shipping' => 'INTEGER NOT NULL DEFAULT 0', 'coupon_code' => 'TEXT', 'payment_method' => "TEXT DEFAULT 'transfer'", 'tracking_code' => 'TEXT', 'admin_note' => 'TEXT', 'updated_at' => 'TEXT'],
         'invoices'     => ['order_id' => 'INTEGER', 'user_id' => 'INTEGER'],
-        'rfqs'         => ['user_id' => 'INTEGER', 'title' => 'TEXT', 'status' => "TEXT NOT NULL DEFAULT 'new'", 'quote_amount' => 'INTEGER', 'admin_reply' => 'TEXT', 'quoted_at' => 'TEXT'],
+        'rfqs'         => ['user_id' => 'INTEGER', 'email' => 'TEXT', 'messenger' => 'TEXT', 'title' => 'TEXT', 'items_json' => "TEXT NOT NULL DEFAULT '[]'", 'attachments_json' => "TEXT NOT NULL DEFAULT '[]'", 'status' => "TEXT NOT NULL DEFAULT 'new'", 'quote_amount' => 'INTEGER', 'admin_reply' => 'TEXT', 'quoted_at' => 'TEXT'],
     ];
     foreach ($sync as $table => $columns) {
         $existing = [];

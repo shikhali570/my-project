@@ -458,6 +458,143 @@ function rfq_status_class($s)
     return $map[$s] ?? 'muted';
 }
 
+/** ورودی‌های تکرارشوندهٔ اقلام را برای نمایش امن در فرم آماده می‌کند. */
+function rfq_form_item_rows($rawItems)
+{
+    if (!is_array($rawItems)) {
+        return [];
+    }
+    $rows = [];
+    foreach (array_slice($rawItems, 0, RFQ_MAX_ITEMS, true) as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $clean = [];
+        foreach (['description', 'quantity', 'item_code', 'category'] as $key) {
+            $value = $row[$key] ?? '';
+            $clean[$key] = is_scalar($value) ? trim((string)$value) : '';
+        }
+        $rows[] = $clean;
+    }
+    return array_values($rows);
+}
+
+/** اقلام ارسالی را اعتبارسنجی و به ساختار قابل ذخیره تبدیل می‌کند. */
+function rfq_validate_items($rawItems, array $activeCategories, &$error = null)
+{
+    $error = null;
+    if (!is_array($rawItems)) {
+        $error = 'حداقل یک قلم کالا را وارد کنید.';
+        return [];
+    }
+    if (count($rawItems) > RFQ_MAX_ITEMS) {
+        $error = 'حداکثر ' . fa_num(RFQ_MAX_ITEMS) . ' قلم در هر استعلام پذیرفته می‌شود.';
+        return [];
+    }
+
+    $allowedCategories = [];
+    foreach ($activeCategories as $category) {
+        if (isset($category['slug'])) {
+            $allowedCategories[(string)$category['slug']] = true;
+        }
+    }
+
+    $items = [];
+    $messages = [];
+    foreach (rfq_form_item_rows($rawItems) as $row) {
+        $hasValue = $row['description'] !== '' || $row['quantity'] !== ''
+            || $row['item_code'] !== '' || $row['category'] !== '';
+        if (!$hasValue) {
+            continue;
+        }
+
+        $description = $row['description'];
+        $quantity = en_digits($row['quantity']);
+        $itemCode = $row['item_code'];
+        $category = $row['category'];
+        $valid = true;
+
+        if (mb_strlen($description, 'UTF-8') < 2 || mb_strlen($description, 'UTF-8') > 500) {
+            $messages[] = 'شرح هر قلم را کامل وارد کنید (۲ تا ۵۰۰ نویسه).';
+            $valid = false;
+        }
+        if (!preg_match('/^[0-9]+(?:\.[0-9]{1,3})?$/', $quantity) || (float)$quantity <= 0 || (float)$quantity > 1000000000) {
+            $messages[] = 'مقدار هر قلم باید عددی بزرگ‌تر از صفر باشد.';
+            $valid = false;
+        }
+        if (mb_strlen($itemCode, 'UTF-8') > 120) {
+            $messages[] = 'شناسه کالا نباید بیش از ۱۲۰ نویسه باشد.';
+            $valid = false;
+        }
+        if ($category === '' || !isset($allowedCategories[$category])) {
+            $messages[] = 'دسته‌بندی هر قلم را از فهرست انتخاب کنید.';
+            $valid = false;
+        }
+
+        if ($valid) {
+            $items[] = [
+                'description' => $description,
+                'quantity' => $quantity,
+                'item_code' => $itemCode,
+                'category' => $category,
+            ];
+        }
+    }
+
+    if (!$items && !$messages) {
+        $messages[] = 'حداقل یک قلم کالا را کامل وارد کنید.';
+    }
+    if ($messages) {
+        $error = implode(' ', array_values(array_unique($messages)));
+    }
+    return $items;
+}
+
+/** ساختار JSON اقلام را بدون تغییر برمی‌گرداند؛ دادهٔ قدیمی خالی می‌ماند. */
+function rfq_items_decode($json)
+{
+    if (!is_string($json) || $json === '') {
+        return [];
+    }
+    $decoded = json_decode($json, true);
+    if (!is_array($decoded)) {
+        return [];
+    }
+    $items = [];
+    foreach ($decoded as $item) {
+        if (!is_array($item)) {
+            continue;
+        }
+        $items[] = [
+            'description' => isset($item['description']) && is_scalar($item['description']) ? (string)$item['description'] : '',
+            'quantity' => isset($item['quantity']) && is_scalar($item['quantity']) ? (string)$item['quantity'] : '',
+            'item_code' => isset($item['item_code']) && is_scalar($item['item_code']) ? (string)$item['item_code'] : '',
+            'category' => isset($item['category']) && is_scalar($item['category']) ? (string)$item['category'] : '',
+        ];
+    }
+    return $items;
+}
+
+/** متن سازگار با ستون قدیمی description و با گزارش CSV می‌سازد. */
+function rfq_items_summary(array $items)
+{
+    $lines = [];
+    foreach ($items as $index => $item) {
+        $parts = [fa_num($index + 1) . '- ' . (string)($item['description'] ?? '')];
+        if (isset($item['quantity']) && $item['quantity'] !== '') {
+            $parts[] = 'مقدار: ' . fa_text($item['quantity']);
+        }
+        if (!empty($item['item_code'])) {
+            $parts[] = 'شناسه کالا: ' . (string)$item['item_code'];
+        }
+        if (!empty($item['category'])) {
+            $parts[] = 'دسته‌بندی: ' . category_title((string)$item['category']);
+        }
+        $lines[] = implode(' | ', $parts);
+    }
+    return implode("\n", $lines);
+}
+
 function order_timeline_steps()
 {
     return ['pending', 'approved', 'preparing', 'shipped', 'delivered'];
@@ -494,17 +631,302 @@ function category_title($slug, $fallback = 'سایر')
     return $map[$slug] ?? $fallback;
 }
 
+/** نام مرورگر را بدون مسیر و نویسه‌های کنترلی برای نمایش/دانلود نگه می‌دارد. */
+function rfq_attachment_safe_name($name)
+{
+    $name = str_replace('\\', '/', (string)$name);
+    $name = basename($name);
+    $name = preg_replace('/[\\x00-\\x1F\\x7F]/', '', $name);
+    $name = trim((string)$name);
+    return mb_substr($name, 0, 180, 'UTF-8');
+}
+
+/** MIME واقعی را با fileinfo می‌خواند؛ در نبود افزونه، نوع فایل با امضای باینری هم بررسی می‌شود. */
+function rfq_attachment_detect_mime($path)
+{
+    if (!function_exists('finfo_open')) {
+        return '';
+    }
+    $info = @finfo_open(FILEINFO_MIME_TYPE);
+    if (!$info) {
+        return '';
+    }
+    $mime = @finfo_file($info, $path);
+    // The local finfo handle is released automatically when this function returns.
+    return strtolower(trim((string)$mime));
+}
+
+/** اعتبارسنجی محتوا بر اساس امضای فایل، نه نام یا MIME ارسالی مرورگر. */
+function rfq_attachment_content_is_valid($path, $extension, $mime)
+{
+    $allowedMimes = [
+        'jpg' => ['image/jpeg'],
+        'jpeg' => ['image/jpeg'],
+        'png' => ['image/png'],
+        'pdf' => ['application/pdf', 'application/x-pdf'],
+        'xls' => ['application/vnd.ms-excel', 'application/x-ole-storage', 'application/cdfv2', 'application/octet-stream'],
+        'xlsx' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/zip', 'application/x-zip', 'application/x-zip-compressed', 'application/octet-stream'],
+    ];
+    if (!isset($allowedMimes[$extension]) || ($mime !== '' && !in_array($mime, $allowedMimes[$extension], true))) {
+        return false;
+    }
+
+    $handle = @fopen($path, 'rb');
+    if (!$handle) {
+        return false;
+    }
+    $header = (string)fread($handle, 1024);
+    fclose($handle);
+
+    if ($extension === 'jpg' || $extension === 'jpeg') {
+        return substr($header, 0, 3) === "\xFF\xD8\xFF";
+    }
+    if ($extension === 'png') {
+        return substr($header, 0, 8) === "\x89PNG\r\n\x1A\n";
+    }
+    if ($extension === 'pdf') {
+        return strpos($header, '%PDF-') !== false;
+    }
+    if ($extension === 'xls') {
+        return substr($header, 0, 8) === "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1";
+    }
+    if ($extension === 'xlsx') {
+        if (substr($header, 0, 4) !== "PK\x03\x04") {
+            return false;
+        }
+        if (class_exists('ZipArchive')) {
+            $zip = new ZipArchive();
+            if ($zip->open($path) !== true) {
+                return false;
+            }
+            $valid = $zip->locateName('[Content_Types].xml') !== false
+                && $zip->locateName('xl/workbook.xml') !== false;
+            $zip->close();
+            return $valid;
+        }
+        $archive = @file_get_contents($path);
+        return is_string($archive) && strpos($archive, '[Content_Types].xml') !== false
+            && strpos($archive, 'xl/workbook.xml') !== false;
+    }
+    return false;
+}
+
+/** فایل‌های انتخاب‌شده را قبل از ذخیره از نظر تعداد، حجم، پسوند و محتوای واقعی می‌سنجد. */
+function rfq_attachment_uploads_inspect($upload)
+{
+    $none = ['files' => [], 'error' => null];
+    if (!is_array($upload) || !isset($upload['error'])) {
+        return $none;
+    }
+    $names = is_array($upload['name'] ?? null) ? $upload['name'] : [0 => ($upload['name'] ?? '')];
+    $errors = is_array($upload['error']) ? $upload['error'] : [0 => $upload['error']];
+    $indexes = array_values(array_unique(array_merge(array_keys($names), array_keys($errors))));
+    $files = [];
+    $totalBytes = 0;
+    $allowedExtensions = ['jpg', 'jpeg', 'png', 'pdf', 'xls', 'xlsx'];
+
+    foreach ($indexes as $index) {
+        $code = isset($errors[$index]) && is_scalar($errors[$index]) ? (int)$errors[$index] : UPLOAD_ERR_NO_FILE;
+        if ($code === UPLOAD_ERR_NO_FILE) {
+            continue;
+        }
+        if (count($files) >= RFQ_MAX_ATTACHMENTS) {
+            return ['files' => [], 'error' => 'حداکثر ' . fa_num(RFQ_MAX_ATTACHMENTS) . ' فایل برای هر استعلام پذیرفته می‌شود.'];
+        }
+        if ($code === UPLOAD_ERR_INI_SIZE || $code === UPLOAD_ERR_FORM_SIZE) {
+            return ['files' => [], 'error' => 'حجم هر پیوست نباید بیش از ' . fa_num(RFQ_ATTACHMENT_MAX_BYTES / 1048576) . ' مگابایت باشد.'];
+        }
+        if ($code !== UPLOAD_ERR_OK) {
+            return ['files' => [], 'error' => 'دریافت یکی از پیوست‌ها ناموفق بود؛ لطفاً فایل را دوباره انتخاب کنید.'];
+        }
+
+        $tmp = is_array($upload['tmp_name'] ?? null) && isset($upload['tmp_name'][$index])
+            ? (string)$upload['tmp_name'][$index]
+            : (string)($upload['tmp_name'] ?? '');
+        $size = is_array($upload['size'] ?? null) && isset($upload['size'][$index])
+            ? (int)$upload['size'][$index]
+            : (int)($upload['size'] ?? 0);
+        $originalName = isset($names[$index]) && is_scalar($names[$index]) ? rfq_attachment_safe_name($names[$index]) : '';
+
+        if ($tmp === '' || !is_uploaded_file($tmp)) {
+            return ['files' => [], 'error' => 'یکی از پیوست‌ها معتبر نیست؛ لطفاً فایل را دوباره انتخاب کنید.'];
+        }
+        if ($size <= 0 || $size > RFQ_ATTACHMENT_MAX_BYTES) {
+            return ['files' => [], 'error' => 'حجم هر پیوست باید بیشتر از صفر و حداکثر ' . fa_num(RFQ_ATTACHMENT_MAX_BYTES / 1048576) . ' مگابایت باشد.'];
+        }
+        $totalBytes += $size;
+        if ($totalBytes > RFQ_ATTACHMENT_MAX_TOTAL_BYTES) {
+            return ['files' => [], 'error' => 'حجم مجموع پیوست‌ها نباید بیش از ' . fa_num(RFQ_ATTACHMENT_MAX_TOTAL_BYTES / 1048576) . ' مگابایت باشد.'];
+        }
+
+        $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+        if (!in_array($extension, $allowedExtensions, true)) {
+            return ['files' => [], 'error' => 'فقط فایل‌های JPG، JPEG، PNG، Excel و PDF پذیرفته می‌شوند.'];
+        }
+        $mime = rfq_attachment_detect_mime($tmp);
+        if (!rfq_attachment_content_is_valid($tmp, $extension, $mime)) {
+            return ['files' => [], 'error' => 'محتوای یکی از فایل‌ها با قالب اعلام‌شده سازگار نیست.'];
+        }
+        if ($originalName === '') {
+            $originalName = 'attachment.' . $extension;
+        }
+        $files[] = [
+            'tmp' => $tmp,
+            'name' => $originalName,
+            'extension' => $extension === 'jpeg' ? 'jpg' : $extension,
+            'mime' => $mime !== '' ? $mime : 'application/octet-stream',
+            'size' => $size,
+        ];
+    }
+
+    return ['files' => $files, 'error' => null];
+}
+
+/** فایل‌های معتبر را با نام تصادفی در پوشهٔ خصوصی APP_TMP ذخیره می‌کند. */
+function rfq_attachment_uploads_commit(array $inspected)
+{
+    if (!$inspected) {
+        return ['files' => [], 'error' => null];
+    }
+    $dir = APP_TMP . DIRECTORY_SEPARATOR . 'rfq-attachments';
+    if (!is_dir($dir) && !@mkdir($dir, 0700, true) && !is_dir($dir)) {
+        return ['files' => [], 'error' => 'پوشهٔ خصوصی پیوست‌ها ساخته نشد؛ دسترسی نوشتن به پوشه tmp را بررسی کنید.'];
+    }
+    @chmod($dir, 0700);
+
+    $saved = [];
+    foreach ($inspected as $file) {
+        $token = bin2hex(random_bytes(16));
+        $storedName = $token . '.' . $file['extension'];
+        $target = $dir . DIRECTORY_SEPARATOR . $storedName;
+        if (!move_uploaded_file($file['tmp'], $target)) {
+            rfq_attachments_delete($saved);
+            return ['files' => [], 'error' => 'ذخیرهٔ پیوست ناموفق بود؛ دسترسی نوشتن به پوشهٔ خصوصی را بررسی کنید.'];
+        }
+        @chmod($target, 0600);
+        $saved[] = [
+            'token' => $token,
+            'name' => $file['name'],
+            'stored_name' => $storedName,
+            'extension' => $file['extension'],
+            'mime' => $file['mime'],
+            'size' => (int)$file['size'],
+        ];
+    }
+    return ['files' => $saved, 'error' => null];
+}
+
+/** JSON پیوست‌ها را با الگوی نام و شناسهٔ مورد انتظار فیلتر می‌کند. */
+function rfq_attachments_decode($json)
+{
+    if (!is_string($json) || $json === '') {
+        return [];
+    }
+    $decoded = json_decode($json, true);
+    if (!is_array($decoded)) {
+        return [];
+    }
+    $files = [];
+    foreach ($decoded as $file) {
+        if (!is_array($file)) {
+            continue;
+        }
+        $token = isset($file['token']) && is_scalar($file['token']) ? (string)$file['token'] : '';
+        $storedName = isset($file['stored_name']) && is_scalar($file['stored_name']) ? (string)$file['stored_name'] : '';
+        if (!preg_match('/^[a-f0-9]{32}$/', $token)
+            || !preg_match('/^([a-f0-9]{32})\\.(jpg|png|pdf|xls|xlsx)$/', $storedName, $matches)
+            || !hash_equals($token, $matches[1])) {
+            continue;
+        }
+        $files[] = [
+            'token' => $token,
+            'name' => isset($file['name']) && is_scalar($file['name']) ? rfq_attachment_safe_name($file['name']) : 'پیوست.' . $matches[2],
+            'stored_name' => $storedName,
+            'extension' => $matches[2],
+            'mime' => isset($file['mime']) && is_scalar($file['mime']) ? (string)$file['mime'] : 'application/octet-stream',
+            'size' => isset($file['size']) && is_numeric($file['size']) ? (int)$file['size'] : 0,
+        ];
+    }
+    return $files;
+}
+
+/** مسیر دیسک فقط از نام تصادفی مجاز ساخته می‌شود و بیرون از پوشهٔ خصوصی پذیرفته نمی‌شود. */
+function rfq_attachment_resolve_path(array $attachment)
+{
+    $token = (string)($attachment['token'] ?? '');
+    $storedName = (string)($attachment['stored_name'] ?? '');
+    if (!preg_match('/^[a-f0-9]{32}$/', $token)
+        || !preg_match('/^' . preg_quote($token, '/') . '\\.(?:jpg|png|pdf|xls|xlsx)$/', $storedName)) {
+        return null;
+    }
+    $dir = realpath(APP_TMP . DIRECTORY_SEPARATOR . 'rfq-attachments');
+    if ($dir === false) {
+        return null;
+    }
+    $candidate = $dir . DIRECTORY_SEPARATOR . $storedName;
+    if (is_link($candidate)) {
+        return null;
+    }
+    $real = realpath($candidate);
+    if ($real === false) {
+        return null;
+    }
+    $prefix = rtrim($dir, '/' . '\\') . DIRECTORY_SEPARATOR;
+    $inside = DIRECTORY_SEPARATOR === '\\' ? stripos($real, $prefix) === 0 : strpos($real, $prefix) === 0;
+    return $inside ? $real : null;
+}
+
+/** فایل‌های پیوست یک استعلام یا فهرست پیوست‌های تازه را از دیسک پاک می‌کند. */
+function rfq_attachments_delete(array $files)
+{
+    foreach ($files as $file) {
+        if (!is_array($file)) {
+            continue;
+        }
+        $path = rfq_attachment_resolve_path($file);
+        if ($path !== null && is_file($path)) {
+            @unlink($path);
+        }
+    }
+}
+
+function rfq_attachments_delete_for_rfq($json)
+{
+    rfq_attachments_delete(rfq_attachments_decode($json));
+}
+
 function product_url($id)
 {
     return 'index.php?page=product&id=' . (int)$id;
 }
 
-/** لینک استعلام قیمت با یک کالا از پیش در متن فرم استعلام */
+/** لینک استعلام قیمت با یک قلم ساختاریافته از پیش در فرم استعلام */
 function rfq_prefill_url(array $p, $qty = 1)
 {
-    $line = '۱- ' . $p['name'] . ' (' . $p['brand'] . ') | شناسه مالیاتی: ' . $p['tax_id']
-        . ' | تعداد: ' . fa_num($qty) . ' ' . $p['unit'];
-    return 'index.php?page=rfq&items=' . rawurlencode($line);
+    $description = trim((string)($p['name'] ?? ''));
+    if (!empty($p['brand'])) {
+        $description .= ' (' . $p['brand'] . ')';
+    }
+    if (!empty($p['tax_id'])) {
+        $description .= ' | شناسه مالیاتی: ' . $p['tax_id'];
+    }
+    if (!empty($p['unit'])) {
+        $description .= ' | واحد: ' . $p['unit'];
+    }
+    $itemCode = trim((string)($p['sku'] ?? ''));
+    if ($itemCode === '') {
+        $itemCode = trim((string)($p['tax_id'] ?? ''));
+    }
+    $query = [
+        'page' => 'rfq',
+        'items' => [[
+            'description' => $description,
+            'quantity' => en_digits((string)$qty),
+            'item_code' => $itemCode,
+            'category' => (string)($p['category'] ?? ''),
+        ]],
+    ];
+    return 'index.php?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
 }
 
 // ------------------------------------------------------------------ سبد

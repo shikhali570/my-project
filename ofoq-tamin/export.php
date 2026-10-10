@@ -72,11 +72,31 @@ $datasets = [
     ],
     'rfqs' => [
         'title' => 'گزارش استعلام‌های قیمت',
-        'sql' => 'SELECT rfq_code, created_at, company, phone, title, status, quote_amount, quoted_at, description FROM rfqs ORDER BY id DESC',
-        'headers' => ['کد استعلام', 'تاریخ ثبت', 'شرکت', 'تلفن', 'عنوان', 'وضعیت', 'مبلغ پیشنهادی', 'تاریخ قیمت‌گذاری', 'شرح درخواست'],
+        'sql' => 'SELECT rfq_code, created_at, company, phone, email, messenger, title, status, quote_amount, quoted_at,
+                         description, items_json, attachments_json FROM rfqs ORDER BY id DESC',
+        'headers' => ['کد استعلام', 'تاریخ ثبت', 'شرکت', 'شماره همراه', 'ایمیل', 'پیام‌رسان پاسخگو', 'عنوان', 'وضعیت',
+            'مبلغ پیشنهادی', 'تاریخ قیمت‌گذاری', 'شرح درخواست', 'اقلام ساختاریافته', 'نام پیوست‌ها'],
         'map' => function ($r) {
-            return [$r['rfq_code'], $r['created_at'], $r['company'], $r['phone'], $r['title'],
-                rfq_status_label($r['status']), $r['quote_amount'], $r['quoted_at'], str_replace("\n", ' / ', $r['description'])];
+            $itemLines = [];
+            foreach (rfq_items_decode($r['items_json'] ?? '[]') as $index => $item) {
+                $parts = [fa_num($index + 1) . '- ' . $item['description'], 'مقدار: ' . fa_text($item['quantity'])];
+                if ($item['item_code'] !== '') {
+                    $parts[] = 'شناسه کالا: ' . $item['item_code'];
+                }
+                if ($item['category'] !== '') {
+                    $parts[] = 'دسته‌بندی: ' . category_title($item['category']);
+                }
+                $itemLines[] = implode(' | ', $parts);
+            }
+            $attachmentNames = [];
+            foreach (rfq_attachments_decode($r['attachments_json'] ?? '[]') as $attachment) {
+                $attachmentNames[] = $attachment['name'];
+            }
+            return [
+                $r['rfq_code'], $r['created_at'], $r['company'], $r['phone'], $r['email'], $r['messenger'], $r['title'],
+                rfq_status_label($r['status']), $r['quote_amount'], $r['quoted_at'], str_replace("\n", ' / ', $r['description']),
+                implode(' / ', $itemLines), implode(' / ', $attachmentNames),
+            ];
         },
     ],
 ];

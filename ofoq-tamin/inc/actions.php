@@ -17,6 +17,59 @@ $RFQ_STATUSES = array_keys(rfq_statuses());
 
 switch ($act) {
 
+    case 'rfq_attachment_download': {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
+            http_response_code(405);
+            header('Allow: GET');
+            die('روش درخواست مجاز نیست.');
+        }
+        if (!is_logged_in()) {
+            http_response_code(403);
+            die('برای دریافت پیوست باید وارد حساب کاربری شوید.');
+        }
+
+        $rfqId = (int)get('rfq_id');
+        $token = get('attachment');
+        $stmt = $db->prepare('SELECT id, user_id, attachments_json FROM rfqs WHERE id = ?');
+        $stmt->execute([$rfqId]);
+        $rfq = $stmt->fetch();
+        if (!$rfq) {
+            http_response_code(404);
+            die('استعلام یافت نشد.');
+        }
+        if (!is_admin() && (int)($rfq['user_id'] ?? 0) !== user_id()) {
+            http_response_code(403);
+            die('دسترسی به پیوست این استعلام مجاز نیست.');
+        }
+
+        $attachment = null;
+        foreach (rfq_attachments_decode($rfq['attachments_json'] ?? '[]') as $candidate) {
+            if (hash_equals($candidate['token'], $token)) {
+                $attachment = $candidate;
+                break;
+            }
+        }
+        $path = $attachment ? rfq_attachment_resolve_path($attachment) : null;
+        if ($path === null || !is_file($path) || !is_readable($path)) {
+            http_response_code(404);
+            die('پیوست یافت نشد.');
+        }
+
+        $downloadName = rfq_attachment_safe_name($attachment['name']);
+        if ($downloadName === '') {
+            $downloadName = 'attachment.' . $attachment['extension'];
+        }
+        header('Content-Type: application/octet-stream');
+        header('X-Content-Type-Options: nosniff');
+        $disposition = 'Content-Disposition: attachment; filename="attachment.' . $attachment['extension'] . '"; filename*=UTF-8' . chr(39) . chr(39) . rawurlencode($downloadName);
+        header($disposition);
+        header('Content-Length: ' . (string)filesize($path));
+        header('Cache-Control: private, no-store, max-age=0');
+        header('Pragma: no-cache');
+        readfile($path);
+        exit;
+    }
+
     // ================================================== سبد خرید
     case 'add_cart': {
         $pid = (int)post('id', (string)get('id'));
@@ -263,45 +316,111 @@ switch ($act) {
 
     // ================================================== استعلام قیمت
     case 'rfq_submit': {
+        $rawItems = $_POST['items'] ?? [];
         $input = [
             'company' => post('company'),
             'phone' => post('phone'),
+            'email' => post('email'),
+            'messenger' => post('messenger'),
             'title' => post('title'),
-            'description' => post('description'),
+            'items' => rfq_form_item_rows($rawItems),
         ];
         $company = $input['company'];
         $phone = en_digits($input['phone']);
+        $email = $input['email'];
+        $messenger = $input['messenger'];
         $title = $input['title'];
-        $desc = $input['description'];
-
+        $returnPage = post('return_to') === 'panel_rfqs' && is_buyer() ? 'panel_rfqs' : 'rfq';
         $errors = [];
-        if (mb_strlen($company) < 3) {
-            $errors['company'] = 'نام شرکت یا پیمانکار را کامل وارد کنید (حداقل ۳ حرف).';
+
+        if (mb_strlen($company, 'UTF-8') < 3 || mb_strlen($company, 'UTF-8') > 180) {
+            $errors['company'] = 'نام شرکت یا پیمانکار را کامل وارد کنید (۳ تا ۱۸۰ نویسه).';
         }
         if (!valid_phone($phone)) {
             $errors['phone'] = 'شماره همراه معتبر نیست؛ ۱۱ رقم و با ۰۹ شروع شود.';
         }
-        if (mb_strlen($desc) < 10) {
-            $errors['description'] = 'شرح اقلام را کامل‌تر بنویسید؛ مثلاً نام کالا، مشخصات و تعداد (حداقل ۱۰ حرف).';
+        if ($email === '' || strlen($email) > 254 || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors['email'] = 'یک نشانی ایمیل معتبر وارد کنید.';
         }
+        if (mb_strlen($messenger, 'UTF-8') > 120) {
+            $errors['messenger'] = 'اطلاعات پیام‌رسان نباید بیش از ۱۲۰ نویسه باشد.';
+        }
+        if (mb_strlen($title, 'UTF-8') > 180) {
+            $errors['title'] = 'عنوان درخواست نباید بیش از ۱۸۰ نویسه باشد.';
+        }
+
+        $itemError = null;
+        $items = rfq_validate_items($rawItems, categories(), $itemError);
+        if ($itemError !== null) {
+            $errors['items'] = $itemError;
+        }
+        $attachmentCheck = rfq_attachment_uploads_inspect($_FILES['attachments'] ?? null);
+        if ($attachmentCheck['error'] !== null) {
+            $errors['attachments'] = $attachmentCheck['error'];
+        }
+
         if ($errors) {
+            if ($attachmentCheck['files'] && empty($errors['attachments'])) {
+                $errors['attachment_notice'] = 'پس از ارسال ناموفق، فایل‌های انتخاب‌شده حفظ نمی‌شوند؛ بعد از اصلاح خطاها دوباره آن‌ها را انتخاب کنید.';
+            }
             remember_form('rfq', $input, $errors);
             flash('لطفاً موارد مشخص‌شده را اصلاح کنید.', 'error');
-            redirect('index.php?page=rfq');
+            redirect('index.php?page=' . $returnPage);
+        }
+
+        $attachmentResult = rfq_attachment_uploads_commit($attachmentCheck['files']);
+        if ($attachmentResult['error'] !== null) {
+            $errors['attachments'] = $attachmentResult['error'];
+            remember_form('rfq', $input, $errors);
+            flash('پیوست ذخیره نشد؛ لطفاً دوباره تلاش کنید.', 'error');
+            redirect('index.php?page=' . $returnPage);
+        }
+
+        $itemsJson = json_encode($items, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+        $attachmentsJson = json_encode($attachmentResult['files'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+        if ($itemsJson === false || $attachmentsJson === false) {
+            rfq_attachments_delete($attachmentResult['files']);
+            remember_form('rfq', $input, ['items' => 'ذخیره اطلاعات استعلام ناموفق بود؛ لطفاً دوباره تلاش کنید.']);
+            flash('ذخیره اطلاعات استعلام ناموفق بود.', 'error');
+            redirect('index.php?page=' . $returnPage);
         }
 
         $code = gen_rfq_code($db);
-        $stmt = $db->prepare('INSERT INTO rfqs (rfq_code, user_id, company, phone, title, description, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
-        $stmt->execute([$code, user_id() ?: null, $company, $phone, $title ?: null, $desc, 'new', date('Y-m-d H:i:s')]);
+        $description = rfq_items_summary($items);
+        try {
+            $db->beginTransaction();
+            $stmt = $db->prepare('INSERT INTO rfqs (rfq_code, user_id, company, phone, email, messenger, title, description, items_json, attachments_json, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+            $stmt->execute([
+                $code,
+                user_id() ?: null,
+                $company,
+                $phone,
+                $email,
+                $messenger !== '' ? $messenger : null,
+                $title !== '' ? $title : null,
+                $description,
+                $itemsJson,
+                $attachmentsJson,
+                'new',
+                date('Y-m-d H:i:s'),
+            ]);
+            $db->commit();
+        } catch (Throwable $exception) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            rfq_attachments_delete($attachmentResult['files']);
+            throw $exception;
+        }
 
-        if (user_id()) {
+        if (is_buyer()) {
             notify(user_id(), 'استعلام ' . $code . ' ثبت شد', 'کارشناسان فروش تا حداکثر ۲۴ ساعت کاری قیمت سازمانی را اعلام می‌کنند.', 'index.php?page=panel_rfqs');
         }
         notify_admins('استعلام جدید ' . $code, $company . ' درخواست قیمت ثبت کرد.', 'index.php?page=admin_rfqs');
         log_action('rfq_create', 'rfq', (int)$db->lastInsertId(), 'ثبت استعلام ' . $code);
 
         flash('استعلام شما با کد پیگیری ' . $code . ' ثبت شد. پاسخ قیمت در پنل خریدار قابل مشاهده است.', 'success');
-        redirect('index.php?page=rfq&done=' . urlencode($code));
+        redirect('index.php?page=' . $returnPage . '&done=' . urlencode($code));
     }
 
     // ================================================== اعلان‌ها
@@ -757,7 +876,13 @@ switch ($act) {
     case 'rfq_delete': {
         require_admin();
         $id = (int)post('id');
+        $lookup = $db->prepare('SELECT attachments_json FROM rfqs WHERE id = ?');
+        $lookup->execute([$id]);
+        $rfq = $lookup->fetch();
         $db->prepare('DELETE FROM rfqs WHERE id = ?')->execute([$id]);
+        if ($rfq) {
+            rfq_attachments_delete_for_rfq($rfq['attachments_json'] ?? '[]');
+        }
         log_action('rfq_delete', 'rfq', $id, 'حذف استعلام');
         flash('استعلام حذف شد.', 'success');
         redirect('index.php?page=admin_rfqs');

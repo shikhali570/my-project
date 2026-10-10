@@ -11,9 +11,9 @@ if ($status !== '' && isset(rfq_statuses()[$status])) {
     $params[] = $status;
 }
 if ($q !== '') {
-    $where[] = '(rfq_code LIKE ? OR company LIKE ? OR phone LIKE ? OR title LIKE ? OR description LIKE ?)';
+    $where[] = '(rfq_code LIKE ? OR company LIKE ? OR phone LIKE ? OR email LIKE ? OR messenger LIKE ? OR title LIKE ? OR description LIKE ?)';
     $like = '%' . $q . '%';
-    array_push($params, $like, $like, $like, $like, $like);
+    array_push($params, $like, $like, $like, $like, $like, $like, $like);
 }
 $sqlWhere = $where ? ' WHERE ' . implode(' AND ', $where) : '';
 
@@ -56,7 +56,7 @@ $quotedSum = (int)$db->query('SELECT COALESCE(SUM(quote_amount),0) FROM rfqs')->
 
   <form class="filter-bar wide" method="GET" action="index.php">
     <input type="hidden" name="page" value="admin_rfqs">
-    <input type="text" name="q" value="<?= e($q) ?>" placeholder="کد استعلام، شرکت، تلفن یا شرح درخواست…">
+    <input type="text" name="q" value="<?= e($q) ?>" placeholder="کد استعلام، شرکت، تلفن، ایمیل یا شرح درخواست…">
     <select name="status">
       <option value="">همه وضعیت‌ها</option>
       <?php foreach (rfq_statuses() as $k => $label): ?>
@@ -74,7 +74,12 @@ $quotedSum = (int)$db->query('SELECT COALESCE(SUM(quote_amount),0) FROM rfqs')->
       <?php foreach ($rows as $r): ?>
         <tr>
           <td><strong class="mono"><?= e($r['rfq_code']) ?></strong></td>
-          <td><?= e($r['company']) ?><div class="mini-note mono"><?= e($r['phone']) ?></div></td>
+          <td>
+            <?= e($r['company']) ?>
+            <div class="mini-note mono"><?= e($r['phone']) ?></div>
+            <?php if (!empty($r['email'])): ?><div class="mini-note"><?= e($r['email']) ?></div><?php endif; ?>
+            <?php if (!empty($r['messenger'])): ?><div class="mini-note">پیام‌رسان: <?= e($r['messenger']) ?></div><?php endif; ?>
+          </td>
           <td>
             <?= e($r['title'] ?: '—') ?>
             <div class="mini-note"><?= e(mb_substr($r['description'], 0, 70)) ?>…</div>

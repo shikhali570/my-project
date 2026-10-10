@@ -196,6 +196,60 @@ document.addEventListener('click', (e) => {
   input.value = val;
 });
 
+/* ------------------------------------------- اقلام تکرارشوندهٔ استعلام */
+function refreshRfqItemFields(collection) {
+  const list = collection.querySelector('[data-rfq-item-list]');
+  const rows = list ? Array.from(list.querySelectorAll('[data-rfq-item]')) : [];
+  const max = parseInt(collection.dataset.maxItems || '20', 10);
+  rows.forEach((row, index) => {
+    const number = row.querySelector('[data-rfq-item-number]');
+    const remove = row.querySelector('[data-rfq-remove-item]');
+    if (number) number.textContent = toFa(index + 1);
+    if (remove) remove.hidden = rows.length < 2;
+  });
+  const add = collection.querySelector('[data-rfq-add-item]');
+  if (add) add.disabled = rows.length >= max;
+}
+
+document.addEventListener('click', (e) => {
+  const add = e.target.closest('[data-rfq-add-item]');
+  if (add) {
+    const collection = add.closest('[data-rfq-items]');
+    const list = collection && collection.querySelector('[data-rfq-item-list]');
+    const template = collection && collection.querySelector('template[data-rfq-item-template]');
+    if (!collection || !list || !template) return;
+    const max = parseInt(collection.dataset.maxItems || '20', 10);
+    if (list.querySelectorAll('[data-rfq-item]').length >= max) return;
+
+    const next = Math.max(0, parseInt(list.dataset.nextIndex || '0', 10) || 0);
+    const row = template.content.firstElementChild.cloneNode(true);
+    row.querySelectorAll('[id], [name], [for]').forEach((field) => {
+      ['id', 'name', 'for'].forEach((attribute) => {
+        const value = field.getAttribute(attribute);
+        if (value && value.includes('__INDEX__')) {
+          field.setAttribute(attribute, value.replace(/__INDEX__/g, String(next)));
+        }
+      });
+    });
+    list.appendChild(row);
+    list.dataset.nextIndex = String(next + 1);
+    refreshRfqItemFields(collection);
+    row.querySelector('.rfq-item__description textarea')?.focus();
+    return;
+  }
+
+  const remove = e.target.closest('[data-rfq-remove-item]');
+  if (!remove) return;
+  const collection = remove.closest('[data-rfq-items]');
+  const list = collection && collection.querySelector('[data-rfq-item-list]');
+  const row = remove.closest('[data-rfq-item]');
+  if (!collection || !list || !row || list.querySelectorAll('[data-rfq-item]').length < 2) return;
+  row.remove();
+  refreshRfqItemFields(collection);
+});
+
+document.querySelectorAll('[data-rfq-items]').forEach(refreshRfqItemFields);
+
 /* ---------------------------------------------- تأیید عملیات‌های حساس */
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-confirm]');

@@ -20,7 +20,7 @@ if (function_exists('mb_internal_encoding')) {
     mb_internal_encoding('UTF-8');
 }
 
-define('APP_VERSION', '4.1.1');
+define('APP_VERSION', '4.1.2');
 define('APP_ROOT', __DIR__);
 define('DB_FILE', __DIR__ . '/parssaze.db');
 define('APP_TMP', __DIR__ . '/tmp');
@@ -28,6 +28,11 @@ define('APP_TMP', __DIR__ . '/tmp');
 define('APP_UPLOADS', __DIR__ . '/uploads');
 // حداکثر حجم هر تصویر کالا (بایت). باید از upload_max_filesize در .user.ini کمتر باشد.
 define('PRODUCT_IMAGE_MAX_BYTES', 5 * 1024 * 1024);
+// سقف‌های استعلام قیمت؛ پیوست‌ها فقط در APP_TMP/rfq-attachments (مسدود از HTTP) نگه‌داری می‌شوند.
+define('RFQ_MAX_ITEMS', 20);
+define('RFQ_MAX_ATTACHMENTS', 5);
+define('RFQ_ATTACHMENT_MAX_BYTES', 5 * 1024 * 1024);
+define('RFQ_ATTACHMENT_MAX_TOTAL_BYTES', 10 * 1024 * 1024);
 
 // پوشه کاری (Current Working Directory) را روی ریشه برنامه ثابت می‌کنیم.
 // روی IIS/FastCGI پوشه کاری معمولاً ریشه سایت نیست (مثلاً پوشه php-cgi یا

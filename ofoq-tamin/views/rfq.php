@@ -1,5 +1,5 @@
 <?php
-/** فرم استعلام قیمت پروژه (RFQ) */
+/** فرم عمومی استعلام قیمت پروژه (RFQ) */
 $me = current_user();
 $doneCode = get('done');
 $myRfqs = [];
@@ -16,8 +16,19 @@ $errs = $formState['errors'];
 $fieldVal = function ($key, $default = '') use ($old) {
     return array_key_exists($key, $old) ? (string)$old[$key] : (string)$default;
 };
-// اگر از لینک «استعلام برای این کالا» آمده‌ایم، فهرست اقلام از پیش نوشته می‌شود
-$descDefault = array_key_exists('description', $old) ? $old['description'] : (string)get('items');
+
+// پشتیبانی از لینک‌های قدیمی «استعلام این کالا» که متن را با ?items= می‌فرستادند
+$itemSource = $old['items'] ?? null;
+if (!is_array($itemSource)) {
+    if (isset($old['description']) && is_scalar($old['description']) && trim((string)$old['description']) !== '') {
+        $itemSource = [['description' => (string)$old['description']]];
+    } elseif (isset($_GET['items']) && is_array($_GET['items'])) {
+        $itemSource = $_GET['items'];
+    } elseif (isset($_GET['items']) && is_scalar($_GET['items']) && trim((string)$_GET['items']) !== '') {
+        $itemSource = [['description' => (string)$_GET['items']]];
+    }
+}
+$rfqItemRows = rfq_form_item_rows($itemSource);
 ?>
 
 <?php if ($doneCode): ?>
@@ -36,7 +47,7 @@ $descDefault = array_key_exists('description', $old) ? $old['description'] : (st
   <div class="card rfq-box">
     <h1 class="sec-title">استعلام قیمت پروژه</h1>
     <p class="sec-sub">
-      فهرست اقلام پروژه را بنویسید؛ کارشناسان تدارکات بر اساس آن، پیش‌فاکتور رسمی با شناسه مالیاتی و تخفیف سازمانی صادر می‌کنند.
+      اقلام پروژه و راه‌های تماس را ثبت کنید؛ کارشناسان فروش بر اساس درخواست شما پیش‌فاکتور سازمانی را آماده می‌کنند.
     </p>
 
     <?php if (!$me): ?>
@@ -56,39 +67,23 @@ $descDefault = array_key_exists('description', $old) ? $old['description'] : (st
       </div>
     <?php endif; ?>
 
-    <form method="POST" action="index.php" class="rfq-form">
+    <form method="POST" action="index.php" class="rfq-form" enctype="multipart/form-data">
       <?= csrf_field() ?>
       <input type="hidden" name="action" value="rfq_submit">
+      <input type="hidden" name="return_to" value="rfq">
       <p class="form-legend"><span class="req" aria-hidden="true">*</span> فیلدهای الزامی</p>
 
-      <div class="form-grid">
-        <div class="input-group">
-          <label for="r-company">نام شرکت / پیمانکار <span class="req" aria-hidden="true">*</span></label>
-          <input id="r-company" type="text" name="company" required autocomplete="organization" placeholder="مثلاً شرکت مهندسی بناسازان"
-                 value="<?= e($fieldVal('company', $me['company'] ?? '')) ?>"<?= field_invalid_attr($errs, 'company') ?>>
-          <?= field_error($errs, 'company') ?>
-        </div>
-        <div class="input-group">
-          <label for="r-phone">شماره همراه مسئول تدارکات <span class="req" aria-hidden="true">*</span></label>
-          <input id="r-phone" type="tel" name="phone" required maxlength="11" inputmode="tel" autocomplete="tel" dir="ltr" placeholder="09121111111"
-                 value="<?= e($fieldVal('phone', $me['phone'] ?? '')) ?>"<?= field_invalid_attr($errs, 'phone') ?>>
-          <?= field_error($errs, 'phone') ?>
-        </div>
-      </div>
+      <?php require __DIR__ . '/partials/rfq_contact_fields.php'; ?>
 
       <div class="input-group">
         <label for="r-title">عنوان پروژه یا درخواست <span class="muted">(اختیاری)</span></label>
-        <input id="r-title" type="text" name="title" autocomplete="off" placeholder="مثلاً: تجهیزات دفتر فنی پروژه مسکونی ۱۲ طبقه"
-               value="<?= e($fieldVal('title', '')) ?>">
+        <input id="r-title" type="text" name="title" maxlength="180" autocomplete="off" placeholder="مثلاً: تجهیزات دفتر فنی پروژه مسکونی ۱۲ طبقه"
+               value="<?= e($fieldVal('title', '')) ?>"<?= field_invalid_attr($errs, 'title') ?>>
+        <?= field_error($errs, 'title') ?>
       </div>
 
-      <div class="input-group">
-        <label for="r-desc">فهرست اقلام و مقادیر <span class="req" aria-hidden="true">*</span></label>
-        <p class="field-hint" id="r-desc-hint">هر قلم را در یک خط بنویسید: نام کالا، مشخصات، تعداد و واحد. مثال: ۱۰ حلقه رول پلاتر عرض ۹۰ سانتی‌متر</p>
-        <textarea id="r-desc" name="description" rows="7" required
-                  placeholder="۱- ۱۰ حلقه رول پلاتر عرض ۹۰&#10;۲- ۵ عدد کارتریج مشکی پلاتر&#10;۳- ۲ دستگاه متر لیزری ۱۰۰ متری"<?= field_invalid_attr($errs, 'description', 'r-desc-hint') ?>><?= e($descDefault) ?></textarea>
-        <?= field_error($errs, 'description') ?>
-      </div>
+      <?php require __DIR__ . '/partials/rfq_items_fields.php'; ?>
+      <?php require __DIR__ . '/partials/rfq_attachment_field.php'; ?>
 
       <div class="form-actions">
         <button class="btn btn-orange btn-lg" type="submit">📤 ارسال استعلام رسمی</button>
@@ -107,15 +102,6 @@ $descDefault = array_key_exists('description', $old) ? $old['description'] : (st
         <li>✅ ارسال مستقیم به کارگاه‌های پروژه در سراسر کشور</li>
         <li>✅ کارشناس فنی اختصاصی برای انتخاب تجهیزات</li>
       </ul>
-    </div>
-
-    <div class="card">
-      <h2 class="card-title">دسته‌های پرتقاضای استعلام</h2>
-      <div class="chip-row">
-        <?php foreach ($navCategories as $c): ?>
-          <a class="chip" href="index.php?page=home&cat=<?= e($c['slug']) ?>"><?= e($c['icon']) ?> <?= e($c['title']) ?></a>
-        <?php endforeach; ?>
-      </div>
     </div>
 
     <div class="card">

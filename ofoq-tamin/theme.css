@@ -1212,3 +1212,53 @@ body.admin-body { background: #f1eee7; color: #252b2e; }
   .modiyan-strip { padding-block: 6px; }
   .modiyan-copy span { line-height: 1.65; }
 }
+
+/* فرم اقلام و پیوست‌های استعلام قیمت */
+.rfq-contact-grid { margin-block: 12px; }
+.rfq-items-fieldset {
+  min-width: 0; border: 1px solid #e5e0d6; border-radius: 16px; padding: 16px; margin: 18px 0;
+  background: #fffefa;
+}
+.rfq-items-fieldset > legend { padding-inline: 8px; color: #252b2e; font-weight: 800; }
+.rfq-items-fieldset.is-invalid { border-color: #d94841; }
+.rfq-items-fieldset > .field-hint { margin-bottom: 12px; }
+.rfq-item-list { display: grid; gap: 12px; }
+.rfq-item {
+  min-width: 0; padding: 14px; border: 1px solid #e8e3d9; border-radius: 13px; background: #faf8f3;
+}
+.rfq-item__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; color: #77462f; }
+.rfq-item__remove { border: 0; padding: 4px 8px; color: #a43d32; background: transparent; font: inherit; cursor: pointer; }
+.rfq-item__remove:hover { color: #7e231c; text-decoration: underline; }
+.rfq-item__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; }
+.rfq-item__description { grid-column: 1 / -1; }
+.rfq-item__description textarea { min-height: 64px; resize: vertical; }
+.rfq-item__add { margin-top: 12px; }
+.rfq-item__add:disabled { opacity: .55; cursor: not-allowed; }
+.rfq-attachment-field { margin-top: 14px; }
+.rfq-attachment-field input[type="file"] { width: 100%; padding: 9px; border: 1px dashed #cfc6b7; border-radius: 10px; background: #faf8f3; }
+.rfq-attachment-field .field-hint { display: block; margin-top: 5px; line-height: 1.8; }
+.rfq-contact-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.rfq-contact-details > div { min-width: 0; display: grid; gap: 2px; padding: 10px 12px; border-radius: 10px; background: #f7f4ed; }
+.rfq-contact-details span { color: #777b78; font-size: 11.5px; }
+.rfq-contact-details strong { overflow-wrap: anywhere; color: #252b2e; }
+.rfq-admin-items { min-width: 680px; }
+.rfq-item-description { white-space: normal; min-width: 230px; }
+.rfq-saved-items { display: grid; gap: 8px; margin-bottom: 12px; }
+.rfq-saved-item { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 12px; padding: 10px 12px; border: 1px solid #e8e3d9; border-radius: 10px; background: #faf8f3; }
+.rfq-saved-item > strong { color: #77462f; }
+.rfq-contact-line { display: block; margin-top: 2px; overflow-wrap: anywhere; }
+.rfq-attachments { margin: 12px 0; padding: 12px; border: 1px solid #e5e0d6; border-radius: 11px; background: #faf8f3; }
+.rfq-attachments > strong { display: block; margin-bottom: 5px; }
+.rfq-attachments ul { display: grid; gap: 5px; list-style: none; }
+.rfq-attachments li { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.rfq-attachments a { color: #884529; font-weight: 700; overflow-wrap: anywhere; }
+.rfq-attachments a:hover { text-decoration: underline; }
+.rfq-attachments small { color: #777b78; }
+
+@media (max-width: 640px) {
+  .rfq-item__grid, .rfq-contact-details { grid-template-columns: minmax(0, 1fr); }
+  .rfq-item__description { grid-column: auto; }
+  .rfq-items-fieldset { padding: 12px; }
+  .rfq-item { padding: 11px; }
+  .rfq-contact-details { gap: 8px; }
+}

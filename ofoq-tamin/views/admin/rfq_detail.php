@@ -40,14 +40,66 @@ foreach ($db->query('SELECT price FROM products ORDER BY RANDOM() LIMIT 1') as $
   </div>
 </div>
 
+<?php
+$rfqItems = rfq_items_decode($r['items_json'] ?? '[]');
+$rfqAttachments = rfq_attachments_decode($r['attachments_json'] ?? '[]');
+?>
+
 <div class="detail-grid wide-left">
   <div>
     <div class="card">
       <div class="card-head">
-        <h3 class="card-title"><?= e($r['title'] ?: 'شرح درخواست مشتری') ?></h3>
+        <h3 class="card-title">اطلاعات تماس استعلام</h3>
         <span class="pill muted mono"><?= e($r['phone']) ?></span>
       </div>
-      <pre class="rfq-desc"><?= e($r['description']) ?></pre>
+      <div class="rfq-contact-details">
+        <div><span>شرکت / پیمانکار</span><strong><?= e($r['company']) ?></strong></div>
+        <div><span>شماره همراه جهت ارتباط</span><strong class="mono" dir="ltr"><?= e($r['phone']) ?></strong></div>
+        <div><span>ایمیل</span><strong><?= !empty($r['email']) ? '<a href="mailto:' . e($r['email']) . '">' . e($r['email']) . '</a>' : '—' ?></strong></div>
+        <div><span>پیام‌رسان پاسخگو</span><strong><?= e($r['messenger'] ?: '—') ?></strong></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3 class="card-title"><?= e($r['title'] ?: 'اقلام درخواست‌شده') ?></h3>
+      </div>
+      <?php if ($rfqItems): ?>
+        <div class="table-wrap">
+          <table class="data-table rfq-admin-items">
+            <caption class="visually-hidden">اقلام ثبت‌شده در استعلام <?= e($r['rfq_code']) ?></caption>
+            <thead><tr><th scope="col">ردیف</th><th scope="col">شرح قلم</th><th scope="col">مقدار</th><th scope="col">شناسه کالا</th><th scope="col">دسته‌بندی</th></tr></thead>
+            <tbody>
+              <?php foreach ($rfqItems as $index => $item): ?>
+                <tr>
+                  <td><?= fa_num($index + 1) ?></td>
+                  <td class="rfq-item-description"><?= nl2br(e($item['description'])) ?></td>
+                  <td><?= e(fa_text($item['quantity'])) ?></td>
+                  <td class="mono"><?= e($item['item_code'] ?: '—') ?></td>
+                  <td><?= e($item['category'] !== '' ? category_title($item['category']) : '—') ?></td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      <?php else: ?>
+        <pre class="rfq-desc"><?= e($r['description']) ?></pre>
+      <?php endif; ?>
+
+      <?php if ($rfqAttachments): ?>
+        <div class="rfq-attachments">
+          <strong>پیوست‌های استعلام</strong>
+          <ul>
+            <?php foreach ($rfqAttachments as $attachment): ?>
+              <li>
+                <a href="index.php?action=rfq_attachment_download&amp;rfq_id=<?= (int)$r['id'] ?>&amp;attachment=<?= e($attachment['token']) ?>"><?= e($attachment['name']) ?></a>
+                <small><?= fa_num(round($attachment['size'] / 1024)) ?> کیلوبایت · <?= e(strtoupper($attachment['extension'])) ?></small>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+        </div>
+      <?php endif; ?>
+
       <?php if ($r['admin_reply']): ?>
         <div class="alert success"><strong>پاسخ ثبت‌شده:</strong> <?= e($r['admin_reply']) ?></div>
       <?php endif; ?>

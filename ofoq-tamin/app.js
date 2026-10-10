@@ -372,6 +372,53 @@ function initNotificationPoll() {
   }, 60000);
 }
 
+/* -------------------------------------- ثبت‌نام: فیلدهای نوع خریدار */
+function initRegistrationEntityType() {
+  const form = document.querySelector('[data-register-form]');
+  if (!form) return;
+
+  const radios = Array.from(form.querySelectorAll('input[name="entity_type"]'));
+  const groups = Array.from(form.querySelectorAll('[data-register-entity-fields]'));
+  const hint = form.querySelector('[data-register-type-hint]');
+  const nationalId = form.querySelector('[data-register-national-id]');
+  const nationalHint = form.querySelector('[data-register-national-hint]');
+  const contactLabel = form.querySelector('[data-register-contact-label]');
+
+  const update = () => {
+    const selected = form.querySelector('input[name="entity_type"]:checked')?.value || '';
+    groups.forEach((group) => {
+      const active = selected !== '' && group.dataset.registerEntityFields === selected;
+      group.hidden = !active;
+      group.classList.toggle('is-active', active);
+      group.querySelectorAll('input, select, textarea').forEach((field) => {
+        field.disabled = !active;
+        if (field.dataset.requiredFor) field.required = field.dataset.requiredFor === selected;
+      });
+    });
+    if (hint) hint.hidden = selected !== '';
+    if (nationalId) {
+      nationalId.maxLength = selected === 'individual' ? 10 : 11;
+      nationalId.placeholder = selected === 'individual'
+        ? 'کد ملی ۱۰ رقمی'
+        : (selected === 'legal' ? 'شناسه ملی ۱۱ رقمی' : 'طبق نوع خریدار');
+    }
+    if (contactLabel) {
+      contactLabel.textContent = selected === 'legal' ? 'نام و نام خانوادگی رابط / نماینده' : 'نام و نام خانوادگی';
+    }
+    if (nationalHint) {
+      nationalHint.textContent = selected === 'individual'
+        ? 'کد ملی شخص حقیقی را به‌صورت ۱۰ رقم وارد کنید.'
+        : (selected === 'legal' ? 'شناسه ملی شرکت یا مؤسسه را به‌صورت ۱۱ رقم وارد کنید.' : 'شخص حقیقی: کد ملی ۱۰ رقم؛ شخص حقوقی: شناسه ملی ۱۱ رقم.');
+    }
+    form.querySelectorAll('.buyer-type-option').forEach((option) => {
+      option.classList.toggle('selected', Boolean(option.querySelector('input')?.checked));
+    });
+  };
+
+  radios.forEach((radio) => radio.addEventListener('change', update));
+  update();
+}
+
 /* --------------------------------------------------- فیلتر خودکار فرم‌ها */
 function initAutoSubmitFilters() {
   document.querySelectorAll('form.filter-bar select, form.filter-bar input[type="checkbox"]').forEach((el) => {
@@ -396,6 +443,7 @@ document.addEventListener('click', (e) => {
 /* --------------------------------------------------------------- راه‌اندازی */
 document.addEventListener('DOMContentLoaded', () => {
   initLiveSearch();
+  initRegistrationEntityType();
   initAutoSubmitFilters();
   initNotificationPoll();
   initToasts();

@@ -26,7 +26,7 @@ $routeMap = [
     'about'           => ['view' => 'views/about.php', 'layout' => 'public', 'title' => 'درباره ما و استانداردهای مالیاتی'],
     'contact'         => ['view' => 'views/contact.php', 'layout' => 'public', 'title' => 'تماس با واحد فروش'],
     'login'           => ['view' => 'views/login.php', 'layout' => 'auth', 'title' => 'ورود به حساب'],
-    'register'        => ['view' => 'views/register.php', 'layout' => 'auth', 'title' => 'ثبت‌نام خریدار سازمانی'],
+    'register'        => ['view' => 'views/register.php', 'layout' => 'auth', 'title' => 'ثبت‌نام خریدار حقیقی یا حقوقی'],
 
     // پنل خریدار
     'panel'               => ['view' => 'views/panel/dashboard.php', 'layout' => 'panel', 'title' => 'پیشخوان خریدار', 'role' => 'buyer'],

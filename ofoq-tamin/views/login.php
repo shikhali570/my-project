@@ -36,7 +36,7 @@ $phoneValue = array_key_exists('phone', $formState['old'])
       <button type="submit" class="btn btn-primary btn-lg btn-block">ورود به حساب</button>
 
       <div class="auth-links">
-        <span>حساب کاربری ندارید؟ <a href="index.php?page=register">ثبت‌نام خریدار سازمانی</a></span>
+        <span>حساب کاربری ندارید؟ <a href="index.php?page=register">ثبت‌نام خریدار حقیقی یا حقوقی</a></span>
         <a href="index.php?page=contact">فراموشی گذرواژه / پشتیبانی</a>
       </div>
     </form>
@@ -51,7 +51,7 @@ $phoneValue = array_key_exists('phone', $formState['old'])
           <button type="button" class="btn btn-secondary btn-sm" data-fill-phone="09120000000" data-fill-pass="admin1234">درج خودکار</button>
         </div>
         <div class="demo-item">
-          <span class="pill success">خریدار سازمانی</span>
+          <span class="pill success">خریدار</span>
           <div class="mono">۰۹۱۲۱۱۱۱۱۱۱</div>
           <div class="mono">buyer1234</div>
           <button type="button" class="btn btn-secondary btn-sm" data-fill-phone="09121111111" data-fill-pass="buyer1234">درج خودکار</button>
@@ -61,13 +61,13 @@ $phoneValue = array_key_exists('phone', $formState['old'])
   </div>
 
   <aside class="auth-side">
-    <h2>پنل خریدار سازمانی شامل چه امکاناتی است؟</h2>
+    <h2>پنل خریدار شامل چه امکاناتی است؟</h2>
     <ul class="feature-list">
       <li>📦 پیگیری مرحله‌به‌مرحله سفارش‌ها و کد رهگیری مرسوله</li>
       <li>🧾 مشاهده، چاپ و آرشیو صورتحساب‌های الکترونیکی</li>
-      <li>📋 ثبت استعلام قیمت پروژه و مشاهده پیش‌فاکتور سازمانی</li>
+      <li>📋 ثبت استعلام قیمت پروژه و مشاهده پیش‌فاکتور</li>
       <li>⭐ لیست علاقه‌مندی‌ها برای تأمین سریع مجدد اقلام</li>
-      <li>👤 تکمیل کارپوشه: شناسه ملی، کد اقتصادی، نشانی و کد پستی</li>
+      <li>👤 تکمیل کارپوشه: کد ملی یا شناسه ملی، کد اقتصادی و نشانی</li>
       <li>🔔 اعلان تغییر وضعیت سفارش و پاسخ استعلام‌ها</li>
     </ul>
   </aside>

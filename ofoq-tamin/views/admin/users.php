@@ -58,7 +58,7 @@ $credits = (int)$db->query('SELECT COALESCE(SUM(credit),0) FROM users')->fetchCo
   </div>
   <div class="kpi-card">
     <span class="kpi-ico purple">➕</span>
-    <div><span>ایجاد کاربر جدید</span><strong><a href="index.php?page=admin_user_form">افزودن خریدار سازمانی</a></strong><small>با تعیین گذرواژه اولیه</small></div>
+    <div><span>ایجاد کاربر جدید</span><strong><a href="index.php?page=admin_user_form">افزودن خریدار</a></strong><small>با تعیین گذرواژه اولیه</small></div>
   </div>
 </div>
 
@@ -70,7 +70,7 @@ $credits = (int)$db->query('SELECT COALESCE(SUM(credit),0) FROM users')->fetchCo
     <input type="text" name="q" value="<?= e($q) ?>" placeholder="نام، شرکت، تلفن، ایمیل یا شناسه ملی…">
     <select name="role">
       <option value="">همه نقش‌ها</option>
-      <option value="buyer" <?= $role === 'buyer' ? 'selected' : '' ?>>خریدار سازمانی</option>
+      <option value="buyer" <?= $role === 'buyer' ? 'selected' : '' ?>>خریدار</option>
       <option value="admin" <?= $role === 'admin' ? 'selected' : '' ?>>مدیر سیستم</option>
     </select>
     <select name="status">

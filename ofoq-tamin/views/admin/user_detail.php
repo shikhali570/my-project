@@ -38,7 +38,7 @@ $notifyCount->execute([$id]);
     <h2 class="sec-title"><?= e($u['company'] ?: $u['name']) ?></h2>
     <p class="sec-sub">
       <?= e($u['name']) ?> | <span class="mono"><?= e($u['phone']) ?></span> |
-      <?= e($u['role'] === 'admin' ? 'مدیر سیستم' : 'خریدار سازمانی') ?> |
+      <?= e($u['role'] === 'admin' ? 'مدیر سیستم' : 'خریدار') ?> |
       عضویت از <?= jdate($u['created_at']) ?>
     </p>
   </div>
@@ -153,6 +153,7 @@ $notifyCount->execute([$id]);
   <aside>
     <div class="card">
       <h3 class="card-title">اطلاعات کارپوشه</h3>
+      <div class="kv"><span>نوع خریدار:</span><strong><?= ($u['entity_type'] ?? '') === 'legal' ? 'شخص حقوقی' : (($u['entity_type'] ?? '') === 'individual' ? 'شخص حقیقی' : 'ثبت‌نشده') ?></strong></div>
       <div class="kv"><span>رابط:</span><strong><?= e($u['name']) ?></strong></div>
       <div class="kv"><span>شرکت:</span><strong><?= e($u['company'] ?: '—') ?></strong></div>
       <div class="kv"><span>تلفن:</span><strong class="mono"><?= e($u['phone']) ?></strong></div>

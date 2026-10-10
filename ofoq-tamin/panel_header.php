@@ -1,5 +1,5 @@
 <?php
-/** قالب فضای خریدار سازمانی */
+/** قالب کارپوشه خریدار */
 $me = current_user();
 require __DIR__ . '/header.php';
 
@@ -57,7 +57,7 @@ $unreadPanel = unread_notifications($me['id']);
   <section class="panel-main" aria-label="محتوای کارپوشه خریدار">
     <header class="panel-head">
       <div class="panel-head__title">
-        <span class="panel-eyebrow">فضای خریدار سازمانی</span>
+        <span class="panel-eyebrow"><?= ($me['entity_type'] ?? '') === 'individual' ? 'فضای خریدار حقیقی' : ((($me['entity_type'] ?? '') === 'legal') ? 'فضای خریدار حقوقی' : 'کارپوشه خریدار') ?></span>
         <h1 class="panel-title"><?= e($pageTitle) ?></h1>
       </div>
       <a class="btn btn-secondary panel-cart-link" href="index.php?page=cart"><span aria-hidden="true">▣</span> سبد سفارش <span class="badge-count"><?= fa_num($cartCount) ?></span></a>

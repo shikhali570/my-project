@@ -65,6 +65,7 @@ if ($authAction === 'login') {
 
 // -------------------------------------------------------------- ثبت‌نام
 if ($authAction === 'register') {
+    $entityType = post('entity_type');
     $name = post('name');
     $company = post('company');
     $phone = en_digits(post('phone'));
@@ -72,16 +73,47 @@ if ($authAction === 'register') {
     $password = (string)($_POST['password'] ?? '');
     $password2 = (string)($_POST['password2'] ?? '');
     $nationalId = en_digits(post('national_id'));
+    $economicCode = en_digits(post('economic_code'));
+    $postalCode = en_digits(post('postal_code'));
     $city = post('city');
     $province = post('province');
     $address = post('address');
 
     $errors = [];
+    if (!in_array($entityType, ['individual', 'legal'], true)) {
+        $errors[] = 'شخص حقیقی یا حقوقی بودن خریدار را انتخاب کنید.';
+    }
     if (mb_strlen($name) < 3) {
-        $errors[] = 'نام و نام خانوادگی رابط را کامل وارد کنید.';
+        $errors[] = 'نام و نام خانوادگی خریدار یا نماینده را کامل وارد کنید.';
+    }
+    if ($entityType === 'legal' && mb_strlen($company) < 2) {
+        $errors[] = 'نام کامل شرکت یا مؤسسه را وارد کنید.';
+    }
+    if (in_array($entityType, ['individual', 'legal'], true)) {
+        $idLength = $entityType === 'individual' ? 10 : 11;
+        if (!preg_match('/^[0-9]{' . $idLength . '}$/', $nationalId)) {
+            $errors[] = $entityType === 'individual'
+                ? 'کد ملی شخص حقیقی باید ۱۰ رقم باشد.'
+                : 'شناسه ملی شخص حقوقی باید ۱۱ رقم باشد.';
+        }
+    }
+    if ($entityType === 'legal' && $economicCode !== '' && !preg_match('/^[0-9]{1,20}$/', $economicCode)) {
+        $errors[] = 'کد اقتصادی باید فقط شامل رقم باشد.';
     }
     if (!valid_phone($phone)) {
         $errors[] = 'شماره همراه باید ۱۱ رقم و با ۰۹ شروع شود.';
+    }
+    if (!preg_match('/^[0-9]{10}$/', $postalCode)) {
+        $errors[] = 'کد پستی باید ۱۰ رقم باشد.';
+    }
+    if ($province === '') {
+        $errors[] = 'استان را انتخاب کنید.';
+    }
+    if (mb_strlen($city) < 2) {
+        $errors[] = 'نام شهر را وارد کنید.';
+    }
+    if (mb_strlen($address) < 10) {
+        $errors[] = 'نشانی کامل محل صدور صورتحساب را وارد کنید.';
     }
     if (strlen($password) < 6) {
         $errors[] = 'گذرواژه باید حداقل ۶ کاراکتر باشد.';
@@ -97,10 +129,24 @@ if ($authAction === 'register') {
         foreach ($errors as $err) {
             flash($err, 'error');
         }
-        $_SESSION['old_register'] = compact('name', 'company', 'phone', 'email', 'nationalId', 'city', 'province', 'address');
+        $_SESSION['old_register'] = [
+            'entity_type' => $entityType,
+            'name' => $name,
+            'company' => $company,
+            'phone' => $phone,
+            'email' => $email,
+            'national_id' => $nationalId,
+            'economic_code' => $economicCode,
+            'postal_code' => $postalCode,
+            'city' => $city,
+            'province' => $province,
+            'address' => $address,
+        ];
         redirect('index.php?page=register');
     }
 
+    $company = $entityType === 'legal' ? $company : '';
+    $economicCode = $entityType === 'legal' ? $economicCode : '';
     $stmt = $db->prepare('SELECT id FROM users WHERE phone = ?');
     $stmt->execute([$phone]);
     if ($stmt->fetchColumn()) {
@@ -108,17 +154,17 @@ if ($authAction === 'register') {
         redirect('index.php?page=login');
     }
 
-    $stmt = $db->prepare('INSERT INTO users (role, name, company, phone, email, password_hash, national_id, province, city, address, status, created_at)
-                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    $stmt = $db->prepare('INSERT INTO users (role, entity_type, name, company, phone, email, password_hash, national_id, economic_code, postal_code, province, city, address, status, created_at)
+                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
     $stmt->execute([
-        'buyer', $name, $company ?: null, $phone, $email ?: null, password_hash($password, PASSWORD_DEFAULT),
-        $nationalId ?: null, $province ?: null, $city ?: null, $address ?: null, 'active', date('Y-m-d H:i:s'),
+        'buyer', $entityType, $name, $company ?: null, $phone, $email ?: null, password_hash($password, PASSWORD_DEFAULT),
+        $nationalId, $economicCode ?: null, $postalCode, $province, $city, $address, 'active', date('Y-m-d H:i:s'),
     ]);
     $uid = (int)$db->lastInsertId();
 
     $_SESSION['uid'] = $uid;
     notify($uid, 'حساب کاربری شما ایجاد شد', 'پنل خریدار شامل پیگیری سفارش‌ها، صورتحساب‌های الکترونیکی و استعلام قیمت‌ها فعال شد.', 'index.php?page=panel');
-    notify_admins('خریدار جدید ثبت‌نام کرد', ($company ?: $name) . ' با شماره ' . $phone . ' حساب سازمانی ایجاد کرد.', 'index.php?page=admin_users&id=' . $uid);
+    notify_admins('خریدار جدید ثبت‌نام کرد', ($company ?: $name) . ' با شماره ' . $phone . ' حساب خریدار ایجاد کرد.', 'index.php?page=admin_users&id=' . $uid);
     log_action('register', 'user', $uid, 'ثبت‌نام خریدار جدید');
 
     flash('ثبت‌نام با موفقیت انجام شد. به پنل خریدار خوش آمدید!', 'success');
@@ -154,6 +200,20 @@ if ($authAction === 'profile_update' && is_logged_in()) {
     if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         flash('قالب ایمیل صحیح نیست.', 'error');
         redirect('index.php?page=' . (is_admin() ? 'admin_profile' : 'panel_profile'));
+    }
+    if (in_array(($u['entity_type'] ?? ''), ['individual', 'legal'], true)) {
+        $idLength = $u['entity_type'] === 'individual' ? 10 : 11;
+        $profileIncomplete = !preg_match('/^[0-9]{' . $idLength . '}$/', $nationalId)
+            || !preg_match('/^[0-9]{10}$/', $postalCode)
+            || $province === ''
+            || mb_strlen($city) < 2
+            || mb_strlen($address) < 10
+            || ($u['entity_type'] === 'legal' && mb_strlen($company) < 2)
+            || ($economicCode !== '' && !preg_match('/^[0-9]{1,20}$/', $economicCode));
+        if ($profileIncomplete) {
+            flash('اطلاعات صورتحساب را کامل کنید: شناسه هویتی متناسب با نوع خریدار، کد پستی ۱۰ رقمی، استان، شهر و نشانی کامل لازم است.', 'error');
+            redirect('index.php?page=panel_profile');
+        }
     }
     if (is_admin() && $phone !== $u['phone'] && valid_phone($phone)) {
         $chk = $db->prepare('SELECT COUNT(*) FROM users WHERE phone = ? AND id != ?');

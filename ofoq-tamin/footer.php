@@ -24,7 +24,7 @@
     <div class="footer-links">
       <h4>حساب کاربری</h4>
       <a href="index.php?page=login">ورود به پنل خریدار</a>
-      <a href="index.php?page=register">ثبت‌نام خریدار سازمانی</a>
+      <a href="index.php?page=register">ثبت‌نام خریدار حقیقی یا حقوقی</a>
       <a href="index.php?page=panel">پیشخوان خریدار</a>
       <a href="index.php?page=cart">سبد سفارش</a>
       <a href="index.php?page=login">ورود مدیر سیستم</a>

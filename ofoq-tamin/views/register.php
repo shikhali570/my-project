@@ -1,7 +1,8 @@
 <?php
-/** ثبت‌نام خریدار سازمانی */
+/** ثبت‌نام خریدار حقیقی و حقوقی */
 $old = $_SESSION['old_register'] ?? [];
 unset($_SESSION['old_register']);
+$entityType = in_array(($old['entity_type'] ?? ''), ['individual', 'legal'], true) ? $old['entity_type'] : '';
 $provinces = ['تهران', 'البرز', 'اصفهان', 'خراسان رضوی', 'فارس', 'آذربایجان شرقی', 'گیلان', 'مازندران', 'خوزستان', 'کرمان', 'یزد', 'قم', 'هرمزگان', 'سایر استان‌ها'];
 ?>
 <div class="auth-layout">
@@ -9,24 +10,53 @@ $provinces = ['تهران', 'البرز', 'اصفهان', 'خراسان رضوی
     <div class="auth-head">
       <div class="logo-icon" aria-hidden="true">📝</div>
       <div>
-        <h1>ثبت‌نام خریدار سازمانی</h1>
-        <p>با تکمیل کارپوشه، امکان دریافت پیش‌فاکتور رسمی، تسویه اعتباری و پیگیری سفارش فعال می‌شود.</p>
+        <h1>ثبت‌نام خریدار حقیقی یا حقوقی</h1>
+        <p>اطلاعات هویتی و نشانی لازم برای ثبت خریدار و صدور صورتحساب الکترونیکی را وارد کنید.</p>
       </div>
     </div>
 
-    <form method="POST" action="index.php" class="auth-form">
+    <form method="POST" action="index.php" class="auth-form" data-register-form>
       <?= csrf_field() ?>
       <input type="hidden" name="auth_action" value="register">
       <p class="form-legend"><span class="req" aria-hidden="true">*</span> فیلدهای الزامی · گذرواژه حداقل ۶ کاراکتر</p>
 
-      <div class="grid-2">
+      <fieldset class="buyer-type-select">
+        <legend>نوع خریدار برای صورتحساب <span class="req" aria-hidden="true">*</span></legend>
+        <div class="buyer-type-options">
+          <label class="buyer-type-option<?= $entityType === 'individual' ? ' selected' : '' ?>" for="g-type-individual">
+            <input id="g-type-individual" type="radio" name="entity_type" value="individual" required<?= $entityType === 'individual' ? ' checked' : '' ?>>
+            <span class="buyer-type-option__icon" aria-hidden="true">👤</span>
+            <span class="buyer-type-option__text"><strong>شخص حقیقی</strong><small>صورتحساب به نام شخص</small></span>
+          </label>
+          <label class="buyer-type-option<?= $entityType === 'legal' ? ' selected' : '' ?>" for="g-type-legal">
+            <input id="g-type-legal" type="radio" name="entity_type" value="legal" required<?= $entityType === 'legal' ? ' checked' : '' ?>>
+            <span class="buyer-type-option__icon" aria-hidden="true">🏢</span>
+            <span class="buyer-type-option__text"><strong>شخص حقوقی</strong><small>صورتحساب به نام شرکت یا مؤسسه</small></span>
+          </label>
+        </div>
+        <small class="field-hint" id="g-type-hint" data-register-type-hint<?= $entityType !== '' ? ' hidden' : '' ?>>برای نمایش فیلدهای متناسب با صورتحساب، نوع خریدار را انتخاب کنید.</small>
+      </fieldset>
+
+      <div class="grid-2 buyer-type-fields" data-register-entity-fields="legal"<?= $entityType !== 'legal' ? ' hidden' : '' ?>>
         <div class="input-group">
-          <label for="g-name">نام و نام خانوادگی رابط <span class="req" aria-hidden="true">*</span></label>
-          <input id="g-name" type="text" name="name" required autocomplete="name" value="<?= e($old['name'] ?? '') ?>" placeholder="مهندس علوی">
+          <label for="g-company">نام کامل شرکت / مؤسسه <span class="req" aria-hidden="true">*</span></label>
+          <input id="g-company" type="text" name="company" autocomplete="organization" value="<?= e($old['company'] ?? '') ?>" placeholder="نام ثبت‌شده شرکت" data-required-for="legal"<?= $entityType === 'legal' ? ' required' : '' ?>>
         </div>
         <div class="input-group">
-          <label for="g-company">نام شرکت / مؤسسه</label>
-          <input id="g-company" type="text" name="company" autocomplete="organization" value="<?= e($old['company'] ?? '') ?>" placeholder="شرکت مهندسی بناسازان">
+          <label for="g-economic">کد اقتصادی <span class="muted">(در صورت وجود)</span></label>
+          <input id="g-economic" type="text" name="economic_code" inputmode="numeric" autocomplete="off" maxlength="20" dir="ltr" value="<?= e($old['economic_code'] ?? '') ?>" placeholder="کد اقتصادی شرکت">
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="input-group">
+          <label for="g-name"><span data-register-contact-label><?= $entityType === 'legal' ? 'نام و نام خانوادگی رابط / نماینده' : 'نام و نام خانوادگی' ?></span> <span class="req" aria-hidden="true">*</span></label>
+          <input id="g-name" type="text" name="name" required autocomplete="name" value="<?= e($old['name'] ?? '') ?>" placeholder="نام و نام خانوادگی">
+        </div>
+        <div class="input-group">
+          <label for="g-national">کد ملی / شناسه ملی <span class="req" aria-hidden="true">*</span></label>
+          <input id="g-national" type="text" name="national_id" required maxlength="11" inputmode="numeric" autocomplete="off" data-register-national-id value="<?= e($old['national_id'] ?? '') ?>" placeholder="طبق نوع خریدار">
+          <small class="field-hint" id="g-national-hint" data-register-national-hint>شخص حقیقی: کد ملی ۱۰ رقم؛ شخص حقوقی: شناسه ملی ۱۱ رقم.</small>
         </div>
       </div>
 
@@ -36,8 +66,35 @@ $provinces = ['تهران', 'البرز', 'اصفهان', 'خراسان رضوی
           <input id="g-phone" type="tel" name="phone" required maxlength="11" inputmode="numeric" autocomplete="tel" dir="ltr" value="<?= e($old['phone'] ?? '') ?>" placeholder="09121111111">
         </div>
         <div class="input-group">
-          <label for="g-email">ایمیل سازمانی <span class="muted">(اختیاری)</span></label>
-          <input id="g-email" type="email" name="email" autocomplete="email" dir="ltr" value="<?= e($old['email'] ?? '') ?>" placeholder="procurement@company.ir">
+          <label for="g-email">ایمیل <span class="muted">(اختیاری)</span></label>
+          <input id="g-email" type="email" name="email" autocomplete="email" dir="ltr" value="<?= e($old['email'] ?? '') ?>" placeholder="name@example.ir">
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="input-group">
+          <label for="g-postal">کد پستی محل صدور صورتحساب <span class="req" aria-hidden="true">*</span></label>
+          <input id="g-postal" type="text" name="postal_code" required maxlength="10" inputmode="numeric" autocomplete="postal-code" dir="ltr" value="<?= e($old['postal_code'] ?? '') ?>" placeholder="۱۰ رقم">
+        </div>
+        <div class="input-group">
+          <label for="g-province">استان <span class="req" aria-hidden="true">*</span></label>
+          <select id="g-province" name="province" required autocomplete="address-level1">
+            <option value="" <?= empty($old['province']) ? 'selected' : '' ?>>انتخاب کنید</option>
+            <?php foreach ($provinces as $pv): ?>
+              <option value="<?= e($pv) ?>" <?= ($old['province'] ?? '') === $pv ? 'selected' : '' ?>><?= e($pv) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="input-group">
+          <label for="g-city">شهر <span class="req" aria-hidden="true">*</span></label>
+          <input id="g-city" type="text" name="city" required autocomplete="address-level2" value="<?= e($old['city'] ?? '') ?>">
+        </div>
+        <div class="input-group">
+          <label for="g-address">نشانی کامل محل صدور صورتحساب <span class="req" aria-hidden="true">*</span></label>
+          <input id="g-address" type="text" name="address" required autocomplete="street-address" value="<?= e($old['address'] ?? '') ?>" placeholder="خیابان، کوچه، پلاک و واحد">
         </div>
       </div>
 
@@ -52,33 +109,7 @@ $provinces = ['تهران', 'البرز', 'اصفهان', 'خراسان رضوی
         </div>
       </div>
 
-      <div class="grid-2">
-        <div class="input-group">
-          <label for="g-nid">شناسه ملی / کد اقتصادی <span class="muted">(اختیاری)</span></label>
-          <input id="g-nid" type="text" name="national_id" inputmode="numeric" autocomplete="off" value="<?= e($old['nationalId'] ?? '') ?>" placeholder="10103456789">
-        </div>
-        <div class="input-group">
-          <label for="g-province">استان</label>
-          <select id="g-province" name="province" autocomplete="address-level1">
-            <?php foreach ($provinces as $pv): ?>
-              <option value="<?= e($pv) ?>" <?= ($old['province'] ?? '') === $pv ? 'selected' : '' ?>><?= e($pv) ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-      </div>
-
-      <div class="grid-2">
-        <div class="input-group">
-          <label for="g-city">شهر</label>
-          <input id="g-city" type="text" name="city" autocomplete="address-level2" value="<?= e($old['city'] ?? '') ?>">
-        </div>
-        <div class="input-group">
-          <label for="g-address">نشانی دفتر / انبار</label>
-          <input id="g-address" type="text" name="address" autocomplete="street-address" value="<?= e($old['address'] ?? '') ?>" placeholder="تهران، خیابان گاندی، پلاک ۴۲">
-        </div>
-      </div>
-
-      <button type="submit" class="btn btn-primary btn-lg btn-block">ایجاد حساب خریدار سازمانی</button>
+      <button type="submit" class="btn btn-primary btn-lg btn-block">ایجاد حساب خریدار</button>
 
       <div class="auth-links">
         <span>قبلاً ثبت‌نام کرده‌اید؟ <a href="index.php?page=login">ورود به حساب</a></span>
@@ -87,7 +118,7 @@ $provinces = ['تهران', 'البرز', 'اصفهان', 'خراسان رضوی
   </div>
 
   <aside class="auth-side">
-    <h2>چرا خرید سازمانی از پارس سازه؟</h2>
+    <h2>چرا خرید از پارس سازه؟</h2>
     <ul class="feature-list">
       <li>🧾 صورتحساب الکترونیکی معتبر و قابل استناد در ممیزی مالیاتی</li>
       <li>🚚 ارسال به کارگاه‌های پروژه در سراسر کشور</li>

@@ -128,7 +128,7 @@ $rfqAttachments = rfq_attachments_decode($r['attachments_json'] ?? '[]');
         </div>
         <div class="input-group">
           <label>متن پاسخ / شرایط پیشنهاد (تخفیف، زمان تحویل، شرایط پرداخت)</label>
-          <textarea name="admin_reply" rows="5" placeholder="پیش‌فاکتور با ۱۲٪ تخفیف سازمانی تنظیم شد؛ زمان تحویل ۴۸ ساعت کاری، تسویه ۳۰ روزه."><?= e($r['admin_reply']) ?></textarea>
+          <textarea name="admin_reply" rows="5" placeholder="پیش‌فاکتور یا شرایط پیشنهادی را اینجا برای خریدار بنویسید."><?= e($r['admin_reply']) ?></textarea>
         </div>
         <div class="form-actions">
           <button class="btn btn-primary" type="submit">💾 ثبت پاسخ و ارسال اعلان به خریدار</button>

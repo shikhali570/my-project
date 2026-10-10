@@ -177,6 +177,7 @@ switch ($act) {
             'company' => post('company'),
             'phone' => post('phone'),
             'tax_id' => post('tax_id'),
+            'postal_code' => post('postal_code'),
             'province' => post('province'),
             'city' => post('city'),
             'address' => post('address'),
@@ -193,9 +194,25 @@ switch ($act) {
         $note = $input['note'];
         $email = post('email');
         $u = current_user();
+        $entityType = $u && in_array(($u['entity_type'] ?? ''), ['individual', 'legal'], true)
+            ? $u['entity_type']
+            : ($u && !empty($u['company']) ? 'legal' : null);
+        if ($entityType === 'individual') {
+            $company = '';
+        } elseif ($entityType === 'legal' && $company === '' && $u) {
+            $company = (string)($u['company'] ?? '');
+        }
+        if ($taxId === '' && $u) {
+            $taxId = ($entityType === 'legal' && !empty($u['economic_code']))
+                ? en_digits($u['economic_code'])
+                : en_digits($u['national_id'] ?? '');
+        }
+        $postalCode = en_digits($input['postal_code'] !== '' ? $input['postal_code'] : ($u['postal_code'] ?? ''));
+        $buyerNationalId = $u ? en_digits($u['national_id'] ?? '') : '';
+        $buyerEconomicCode = $entityType === 'legal' && $u ? en_digits($u['economic_code'] ?? '') : '';
 
         // فقط روش‌های شناخته‌شده پذیرفته می‌شوند
-        $paymentMethod = in_array($input['payment_method'], ['transfer', 'credit', 'wallet'], true)
+        $paymentMethod = in_array($input['payment_method'], ['transfer', 'wallet'], true)
             ? $input['payment_method']
             : 'transfer';
 
@@ -206,8 +223,15 @@ switch ($act) {
         if (!valid_phone($phone)) {
             $errors['phone'] = 'شماره همراه معتبر نیست؛ ۱۱ رقم و با ۰۹ شروع شود.';
         }
+        if ($entityType === 'legal' && mb_strlen($company) < 2) {
+            $errors['company'] = 'نام شرکت یا مؤسسه را کامل وارد کنید.';
+        }
         if (mb_strlen($address) < 10) {
             $errors['address'] = 'نشانی تحویل را کامل‌تر وارد کنید (شامل خیابان و پلاک).';
+        }
+        $postalCodeRequired = in_array($entityType, ['individual', 'legal'], true);
+        if (($postalCodeRequired && $postalCode === '') || ($postalCode !== '' && !preg_match('/^[0-9]{10}$/', $postalCode))) {
+            $errors['postal_code'] = 'کد پستی باید ۱۰ رقم باشد.';
         }
         if ($paymentMethod === 'wallet') {
             if (!$u) {
@@ -233,11 +257,12 @@ switch ($act) {
         $orderNo = next_order_no($db);
         $now = date('Y-m-d H:i:s');
 
-        $stmt = $db->prepare('INSERT INTO orders (order_no, user_id, customer_name, company, phone, email, tax_id, province, city, address, note, subtotal, discount, tax_amount, shipping, total, coupon_code, status, payment_status, payment_method, created_at, updated_at)
-                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        $stmt = $db->prepare('INSERT INTO orders (order_no, user_id, entity_type, buyer_national_id, buyer_economic_code, customer_name, company, phone, email, tax_id, postal_code, province, city, address, note, subtotal, discount, tax_amount, shipping, total, coupon_code, status, payment_status, payment_method, created_at, updated_at)
+                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
         $stmt->execute([
-            $orderNo, $u ? (int)$u['id'] : null, $customer, $company ?: null, $phone, $email ?: null, $taxId ?: null,
-            $province ?: null, $city ?: null, $address, $note ?: null,
+            $orderNo, $u ? (int)$u['id'] : null, $entityType, $buyerNationalId ?: null, $buyerEconomicCode ?: null,
+            $customer, $company ?: null, $phone, $email ?: null, $taxId ?: null,
+            $postalCode ?: null, $province ?: null, $city ?: null, $address, $note ?: null,
             $totals['subtotal'], $totals['discount'], $totals['tax'], $totals['shipping'], $totals['total'],
             $totals['coupon']['code'] ?? null, 'pending', 'unpaid', $paymentMethod, $now, $now,
         ]);

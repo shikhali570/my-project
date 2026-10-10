@@ -80,7 +80,7 @@ $rfqItemRows = rfq_form_item_rows($itemSource);
 
     <?php if (!$me): ?>
       <div class="alert info">
-        ارسال استعلام بدون ورود هم ممکن است. برای پیگیری در پنل خریدار، <a href="index.php?page=register">ثبت‌نام خریدار سازمانی</a> یا <a href="index.php?page=login">ورود</a> کنید.
+        ارسال استعلام بدون ورود هم ممکن است. برای پیگیری در پنل خریدار، <a href="index.php?page=register">ثبت‌نام خریدار حقیقی یا حقوقی</a> یا <a href="index.php?page=login">ورود</a> کنید.
       </div>
     <?php endif; ?>
 
@@ -124,11 +124,9 @@ $rfqItemRows = rfq_form_item_rows($itemSource);
     <div class="card">
       <h2 class="card-title">مزایای خرید سازمانی</h2>
       <ul class="feature-list">
-        <li>✅ تخفیف پلکانی بر اساس حجم سفارش</li>
-        <li>✅ تسویه اعتباری ۳۰ روزه برای پیمانکاران دارای سابقه</li>
+        <li>✅ مشاور فنی تأمین کالا داریم</li>
         <li>✅ صدور صورتحساب رسمی با شناسه یکتای مؤدیان</li>
         <li>✅ ارسال مستقیم به کارگاه‌های پروژه در سراسر کشور</li>
-        <li>✅ کارشناس فنی اختصاصی برای انتخاب تجهیزات</li>
       </ul>
     </div>
 

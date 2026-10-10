@@ -76,7 +76,7 @@ $isBuyerPanel = in_array($currentPage ?? '', $buyerPages, true);
             <div class="drop-head">
               <strong><?= e($me['name']) ?></strong>
               <small><?= e($me['company'] ?: 'حساب شخصی') ?></small>
-              <span class="pill <?= $me['role'] === 'admin' ? 'primary' : 'success' ?>"><?= $me['role'] === 'admin' ? 'مدیر سیستم' : 'خریدار سازمانی' ?></span>
+              <span class="pill <?= $me['role'] === 'admin' ? 'primary' : 'success' ?>"><?= $me['role'] === 'admin' ? 'مدیر سیستم' : (($me['entity_type'] ?? '') === 'individual' ? 'خریدار حقیقی' : ((($me['entity_type'] ?? '') === 'legal') ? 'خریدار حقوقی' : 'خریدار')) ?></span>
             </div>
             <a href="index.php?page=<?= $me['role'] === 'admin' ? 'admin' : 'panel' ?>">▦ <span>پیشخوان</span></a>
             <?php if ($me['role'] === 'buyer'): ?>
@@ -97,7 +97,7 @@ $isBuyerPanel = in_array($currentPage ?? '', $buyerPages, true);
         </details>
       <?php else: ?>
         <a href="index.php?page=login" class="btn btn-secondary account-login"><span aria-hidden="true">↪</span><span>ورود</span></a>
-        <a href="index.php?page=register" class="btn btn-outline hide-sm">ثبت‌نام خریدار سازمانی</a>
+        <a href="index.php?page=register" class="btn btn-outline hide-sm">ثبت‌نام خریدار</a>
       <?php endif; ?>
 
       <a href="index.php?page=cart" class="btn btn-primary cart-btn" aria-label="سبد سفارش، <?= fa_num($cartCount) ?> قلم">

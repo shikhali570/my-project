@@ -1262,3 +1262,21 @@ body.admin-body { background: #f1eee7; color: #252b2e; }
   .rfq-item { padding: 11px; }
   .rfq-contact-details { gap: 8px; }
 }
+
+/* انتخاب نوع خریدار در فرم ثبت‌نام */
+.buyer-type-select { min-width: 0; margin: 0 0 18px; padding: 12px 14px 14px; border: 1px solid #e5e0d6; border-radius: 14px; background: #fffefa; }
+.buyer-type-select > legend { padding-inline: 8px; color: #252b2e; font-size: 12px; font-weight: 900; }
+.buyer-type-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.buyer-type-option { min-width: 0; display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid #e5e0d6; border-radius: 12px; background: #fff; cursor: pointer; transition: border-color .16s, background .16s, box-shadow .16s; }
+.buyer-type-option:hover, .buyer-type-option.selected, .buyer-type-option:has(input:checked) { border-color: #8da9bb; background: #f1f6f8; box-shadow: 0 5px 16px -15px rgba(36,75,100,.45); }
+.buyer-type-option input { flex: none; margin: 0; accent-color: #315d7e; }
+.buyer-type-option__icon { flex: none; font-size: 21px; }
+.buyer-type-option__text { min-width: 0; display: grid; gap: 2px; }
+.buyer-type-option__text strong { color: #252b2e; font-size: 12px; }
+.buyer-type-option__text small { color: #777b78; font-size: 10.5px; line-height: 1.7; }
+.buyer-type-select .field-hint { display: block; margin-top: 8px; }
+[data-register-type-hint][hidden], [data-register-entity-fields][hidden] { display: none !important; }
+.buyer-type-fields { margin-bottom: 12px; }
+@media (max-width: 540px) {
+  .buyer-type-options { grid-template-columns: minmax(0, 1fr); }
+}

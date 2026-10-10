@@ -24,7 +24,7 @@ $provinces = ['تهران', 'البرز', 'اصفهان', 'خراسان رضوی
 <div class="detail-head">
   <div>
     <h2 class="sec-title"><?= $isEdit ? 'ویرایش حساب کاربری' : 'ایجاد حساب کاربری جدید' ?></h2>
-    <p class="sec-sub"><?= $isEdit ? 'کاربر: ' . e($u['name']) . ' | شناسه: ' . fa_num($u['id']) : 'می‌توانید حساب خریدار سازمانی یا مدیر سیستم ایجاد کنید.' ?></p>
+    <p class="sec-sub"><?= $isEdit ? 'کاربر: ' . e($u['name']) . ' | شناسه: ' . fa_num($u['id']) : 'می‌توانید حساب خریدار یا مدیر سیستم ایجاد کنید.' ?></p>
   </div>
   <a class="btn btn-secondary btn-sm" href="index.php?page=admin_users">← بازگشت به فهرست کاربران</a>
 </div>
@@ -60,7 +60,7 @@ $provinces = ['تهران', 'البرز', 'اصفهان', 'خراسان رضوی
       <div class="input-group">
         <label>نقش کاربر *</label>
         <select name="role">
-          <option value="buyer" <?= $u['role'] === 'buyer' ? 'selected' : '' ?>>خریدار سازمانی</option>
+          <option value="buyer" <?= $u['role'] === 'buyer' ? 'selected' : '' ?>>خریدار</option>
           <option value="admin" <?= $u['role'] === 'admin' ? 'selected' : '' ?>>مدیر سیستم</option>
         </select>
       </div>
@@ -120,7 +120,7 @@ $provinces = ['تهران', 'البرز', 'اصفهان', 'خراسان رضوی
     </div>
     <div class="input-group">
       <label>یادداشت داخلی (فقط برای مدیران)</label>
-      <textarea name="notes" rows="2" placeholder="مثلاً: مشتری با تسویه اعتباری ۳۰ روزه و تخفیف سازمانی ۸٪"><?= e($u['notes']) ?></textarea>
+      <textarea name="notes" rows="2" placeholder="یادداشت داخلی درباره توافق‌ها یا پیگیری‌های مشتری"><?= e($u['notes']) ?></textarea>
     </div>
   </div>
 

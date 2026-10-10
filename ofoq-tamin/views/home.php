@@ -86,7 +86,7 @@ $filtersActive = $q || $brand || $priceMax || $onlyAvailable || $sort !== 'newes
         </div>
         <div class="hero-card">
           <strong><?= fa_num((int)$db->query("SELECT COUNT(*) FROM users WHERE role = 'buyer'")->fetchColumn()) ?></strong>
-          <span>خریدار سازمانی فعال</span>
+          <span>خریدار</span>
         </div>
         <div class="hero-card">
           <strong><?= fa_num((int)$db->query('SELECT COUNT(*) FROM orders')->fetchColumn()) ?></strong>

@@ -2,22 +2,26 @@
 /** کارپوشه و پروفایل خریدار: اطلاعات مالیاتی و نشانی، و تغییر گذرواژه (زیر بخش جمع‌شونده) */
 require_buyer();
 $me = current_user();
+$entityType = in_array(($me['entity_type'] ?? ''), ['individual', 'legal'], true)
+    ? $me['entity_type']
+    : (!empty($me['company']) ? 'legal' : 'individual');
+$entityTypeLabel = $entityType === 'legal' ? 'شخص حقوقی' : 'شخص حقیقی';
 $provinces = ['تهران', 'البرز', 'اصفهان', 'خراسان رضوی', 'فارس', 'آذربایجان شرقی', 'گیلان', 'مازندران', 'خوزستان', 'کرمان', 'یزد', 'قم', 'هرمزگان', 'سایر استان‌ها'];
 ?>
 
 <section class="card">
   <div class="card-head"><h3 class="card-title">اطلاعات کارپوشه و صورتحساب</h3></div>
-  <p class="mini-note">نوع حساب: خریدار سازمانی · تاریخ عضویت: <?= jdate($me['created_at']) ?> · آخرین ورود: <?= jdate($me['last_login_at'], true) ?></p>
+  <p class="mini-note">نوع خریدار برای صورتحساب: <?= e($entityTypeLabel) ?> · تاریخ عضویت: <?= jdate($me['created_at']) ?> · آخرین ورود: <?= jdate($me['last_login_at'], true) ?></p>
   <form method="POST" action="index.php">
     <?= csrf_field() ?>
     <input type="hidden" name="auth_action" value="profile_update">
     <div class="grid-2">
       <div class="input-group">
-        <label for="pr-name">نام و نام خانوادگی رابط *</label>
+        <label for="pr-name"><?= $entityType === 'legal' ? 'نام و نام خانوادگی رابط / نماینده' : 'نام و نام خانوادگی' ?> *</label>
         <input id="pr-name" type="text" name="name" required value="<?= e($me['name']) ?>">
       </div>
       <div class="input-group">
-        <label for="pr-company">نام شرکت / مؤسسه</label>
+        <label for="pr-company"><?= $entityType === 'legal' ? 'نام شرکت / مؤسسه' : 'نام محل کار (اختیاری)' ?></label>
         <input id="pr-company" type="text" name="company" value="<?= e($me['company']) ?>">
       </div>
     </div>
@@ -33,11 +37,11 @@ $provinces = ['تهران', 'البرز', 'اصفهان', 'خراسان رضوی
     </div>
     <div class="grid-2">
       <div class="input-group">
-        <label for="pr-national">شناسه ملی شرکت</label>
+        <label for="pr-national"><?= $entityType === 'legal' ? 'شناسه ملی شرکت' : 'کد ملی' ?></label>
         <input id="pr-national" type="text" name="national_id" value="<?= e($me['national_id']) ?>">
       </div>
       <div class="input-group">
-        <label for="pr-economic">کد اقتصادی</label>
+        <label for="pr-economic">کد اقتصادی (در صورت وجود)</label>
         <input id="pr-economic" type="text" name="economic_code" value="<?= e($me['economic_code']) ?>">
       </div>
     </div>

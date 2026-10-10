@@ -13,6 +13,7 @@ function install_schema(PDO $db)
     $tables['users'] = "CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         role TEXT NOT NULL DEFAULT 'buyer',
+        entity_type TEXT,
         name TEXT NOT NULL,
         company TEXT,
         phone TEXT UNIQUE NOT NULL,
@@ -69,6 +70,10 @@ function install_schema(PDO $db)
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         order_no TEXT UNIQUE NOT NULL,
         user_id INTEGER,
+        entity_type TEXT,
+        buyer_national_id TEXT,
+        buyer_economic_code TEXT,
+        postal_code TEXT,
         customer_name TEXT NOT NULL,
         company TEXT,
         phone TEXT NOT NULL,
@@ -203,9 +208,9 @@ function install_schema(PDO $db)
 
     // ستون‌هایی که ممکن است در نسخه‌های قبلی نبوده باشند
     $sync = [
-        'users'        => ['role' => "TEXT NOT NULL DEFAULT 'buyer'", 'email' => 'TEXT', 'password_hash' => 'TEXT', 'credit' => 'INTEGER NOT NULL DEFAULT 0', 'status' => "TEXT NOT NULL DEFAULT 'active'", 'notes' => 'TEXT', 'province' => 'TEXT', 'city' => 'TEXT', 'created_at' => 'TEXT', 'last_login_at' => 'TEXT'],
+        'users'        => ['role' => "TEXT NOT NULL DEFAULT 'buyer'", 'entity_type' => 'TEXT', 'email' => 'TEXT', 'password_hash' => 'TEXT', 'credit' => 'INTEGER NOT NULL DEFAULT 0', 'status' => "TEXT NOT NULL DEFAULT 'active'", 'notes' => 'TEXT', 'province' => 'TEXT', 'city' => 'TEXT', 'created_at' => 'TEXT', 'last_login_at' => 'TEXT'],
         'products'     => ['sku' => 'TEXT', 'unit' => "TEXT DEFAULT 'عدد'", 'min_stock' => 'INTEGER NOT NULL DEFAULT 5', 'old_price' => 'INTEGER', 'image' => 'TEXT', 'description' => 'TEXT', 'specs' => 'TEXT', 'is_active' => 'INTEGER NOT NULL DEFAULT 1', 'sold' => 'INTEGER NOT NULL DEFAULT 0', 'views' => 'INTEGER NOT NULL DEFAULT 0', 'created_at' => 'TEXT'],
-        'orders'       => ['user_id' => 'INTEGER', 'company' => 'TEXT', 'email' => 'TEXT', 'province' => 'TEXT', 'city' => 'TEXT', 'address' => 'TEXT', 'note' => 'TEXT', 'discount' => 'INTEGER NOT NULL DEFAULT 0', 'shipping' => 'INTEGER NOT NULL DEFAULT 0', 'coupon_code' => 'TEXT', 'payment_method' => "TEXT DEFAULT 'transfer'", 'tracking_code' => 'TEXT', 'admin_note' => 'TEXT', 'updated_at' => 'TEXT'],
+        'orders'       => ['user_id' => 'INTEGER', 'entity_type' => 'TEXT', 'buyer_national_id' => 'TEXT', 'buyer_economic_code' => 'TEXT', 'postal_code' => 'TEXT', 'company' => 'TEXT', 'email' => 'TEXT', 'province' => 'TEXT', 'city' => 'TEXT', 'address' => 'TEXT', 'note' => 'TEXT', 'discount' => 'INTEGER NOT NULL DEFAULT 0', 'shipping' => 'INTEGER NOT NULL DEFAULT 0', 'coupon_code' => 'TEXT', 'payment_method' => "TEXT DEFAULT 'transfer'", 'tracking_code' => 'TEXT', 'admin_note' => 'TEXT', 'updated_at' => 'TEXT'],
         'invoices'     => ['order_id' => 'INTEGER', 'user_id' => 'INTEGER'],
         'rfqs'         => ['user_id' => 'INTEGER', 'email' => 'TEXT', 'messenger' => 'TEXT', 'title' => 'TEXT', 'items_json' => "TEXT NOT NULL DEFAULT '[]'", 'attachments_json' => "TEXT NOT NULL DEFAULT '[]'", 'status' => "TEXT NOT NULL DEFAULT 'new'", 'quote_amount' => 'INTEGER', 'admin_reply' => 'TEXT', 'quoted_at' => 'TEXT'],
     ];

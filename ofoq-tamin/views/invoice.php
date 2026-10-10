@@ -24,6 +24,12 @@ if ($inv['order_id']) {
     $o->execute([$inv['order_id']]);
     $order = $o->fetch();
 }
+$buyerEntityType = $order['entity_type'] ?? '';
+$buyerEntityTypeLabel = $buyerEntityType === 'individual' ? 'شخص حقیقی' : ($buyerEntityType === 'legal' ? 'شخص حقوقی' : '');
+$buyerNationalId = $order['buyer_national_id'] ?? '';
+$buyerEconomicCode = $order['buyer_economic_code'] ?? '';
+$invoiceTaxId = (string)($inv['buyer_tax_id'] ?? '');
+$taxIdIsInBuyerProfile = $invoiceTaxId !== '' && in_array($invoiceTaxId, [$buyerNationalId, $buyerEconomicCode], true);
 
 // مبالغ کل از خود صورتحساب خوانده می‌شود (همان مبالغی که هنگام ثبت سفارش ذخیره شده)
 $subtotal   = (int)$inv['subtotal'];
@@ -90,9 +96,20 @@ if ($order && is_admin()) {
     <div>
       <h4>خریدار</h4>
       <strong><?= e($inv['buyer_name']) ?></strong>
-      <div>شناسه ملی / کد اقتصادی: <?= e($inv['buyer_tax_id'] ?: '—') ?></div>
+      <?php if ($buyerEntityTypeLabel !== ''): ?><div>نوع خریدار: <?= e($buyerEntityTypeLabel) ?></div><?php endif; ?>
+      <?php if ($buyerEntityType === 'individual'): ?>
+        <div>کد ملی: <?= e($buyerNationalId ?: ($invoiceTaxId ?: '—')) ?></div>
+        <?php if ($buyerNationalId !== '' && $invoiceTaxId !== '' && $invoiceTaxId !== $buyerNationalId): ?><div>شناسه درج‌شده در صورتحساب: <?= e($invoiceTaxId) ?></div><?php endif; ?>
+      <?php elseif ($buyerEntityType === 'legal'): ?>
+        <div>شناسه ملی: <?= e($buyerNationalId ?: '—') ?></div>
+        <?php if ($buyerEconomicCode !== ''): ?><div>کد اقتصادی: <?= e($buyerEconomicCode) ?></div><?php endif; ?>
+        <?php if (!$taxIdIsInBuyerProfile && $invoiceTaxId !== ''): ?><div>شناسه درج‌شده در صورتحساب: <?= e($invoiceTaxId) ?></div><?php endif; ?>
+      <?php else: ?>
+        <div>شناسه ملی / کد اقتصادی: <?= e($invoiceTaxId ?: '—') ?></div>
+      <?php endif; ?>
       <div>تلفن رابط: <span class="mono"><?= e($inv['buyer_phone']) ?></span></div>
       <?php if ($order): ?>
+        <?php if (!empty($order['postal_code'])): ?><div>کد پستی: <span class="mono"><?= e($order['postal_code']) ?></span></div><?php endif; ?>
         <div>نشانی تحویل: <?= e(implode('، ', array_filter([$order['province'] ?? '', $order['city'] ?? '', $order['address'] ?? '']))) ?></div>
         <div>شماره سفارش: <span class="mono"><?= e($order['order_no']) ?></span></div>
       <?php endif; ?>

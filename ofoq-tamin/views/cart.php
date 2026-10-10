@@ -4,6 +4,15 @@ $totals = cart_totals($db, $_SESSION['coupon'] ?? null);
 $items = $totals['items'];
 $me = current_user();
 $vatPercent = fa_num((float)settings('vat_rate', 10), 0);
+$entityType = in_array(($me['entity_type'] ?? ''), ['individual', 'legal'], true)
+    ? $me['entity_type']
+    : (!empty($me['company']) ? 'legal' : '');
+$defaultTaxId = $me['national_id'] ?? '';
+if ($entityType === 'legal' && !empty($me['economic_code'])) {
+    $defaultTaxId = $me['economic_code'];
+}
+$taxIdLabel = $entityType === 'individual' ? 'کد ملی' : 'شناسه ملی / کد اقتصادی';
+$postalCodeRequired = in_array($entityType, ['individual', 'legal'], true);
 
 // ورودی‌های فرم پس از خطا (یک‌بار مصرف)
 $formState = take_form_state('checkout');
@@ -20,7 +29,7 @@ $progress = ($freeMin > 0 && $subtotal > 0) ? min(100, (int)round($subtotal * 10
 
 $walletOk = $me && (int)$me['credit'] >= (int)$totals['total'];
 $selectedPay = $fieldVal('payment_method', 'transfer');
-if (!in_array($selectedPay, ['transfer', 'credit', 'wallet'], true)) {
+if (!in_array($selectedPay, ['transfer', 'wallet'], true)) {
     $selectedPay = 'transfer';
 }
 if ($selectedPay === 'wallet' && !$walletOk) {
@@ -177,11 +186,14 @@ foreach ($errs as $key => $msg) {
               <?= field_error($errs, 'customer_name') ?>
             </div>
 
-            <div class="input-group span-2">
-              <label for="f-company">نام شرکت / شخصیت حقوقی <span class="muted">(اختیاری)</span></label>
-              <input id="f-company" type="text" name="company" autocomplete="organization" placeholder="مثلاً شرکت مهندسی بناسازان"
-                     value="<?= e($fieldVal('company', $me['company'] ?? '')) ?>">
-            </div>
+            <?php if (!$me || $entityType !== 'individual'): ?>
+              <div class="input-group span-2">
+                <label for="f-company">نام شرکت / شخصیت حقوقی<?= $entityType === 'legal' ? ' <span class="req" aria-hidden="true">*</span>' : ' <span class="muted">(اختیاری)</span>' ?></label>
+                <input id="f-company" type="text" name="company" autocomplete="organization" placeholder="مثلاً شرکت مهندسی بناسازان"<?= $entityType === 'legal' ? ' required' : '' ?>
+                       value="<?= e($fieldVal('company', $me['company'] ?? '')) ?>"<?= field_invalid_attr($errs, 'company') ?>>
+                <?= field_error($errs, 'company') ?>
+              </div>
+            <?php endif; ?>
 
             <div class="input-group">
               <label for="f-phone">شماره همراه <span class="req" aria-hidden="true">*</span></label>
@@ -191,9 +203,16 @@ foreach ($errs as $key => $msg) {
             </div>
 
             <div class="input-group">
-              <label for="f-tax">شناسه ملی / کد اقتصادی <span class="muted">(اختیاری)</span></label>
+              <label for="f-tax"><?= e($taxIdLabel) ?> <span class="muted">(اختیاری)</span></label>
               <input id="f-tax" type="text" name="tax_id" inputmode="numeric" autocomplete="off"
-                     value="<?= e($fieldVal('tax_id', $me['national_id'] ?? '')) ?>">
+                     value="<?= e($fieldVal('tax_id', $defaultTaxId)) ?>">
+            </div>
+
+            <div class="input-group">
+              <label for="f-postal">کد پستی<?= $postalCodeRequired ? ' <span class="req" aria-hidden="true">*</span>' : ' <span class="muted">(اختیاری)</span>' ?></label>
+              <input id="f-postal" type="text" name="postal_code" maxlength="10" inputmode="numeric" autocomplete="postal-code" dir="ltr"<?= $postalCodeRequired ? ' required' : '' ?>
+                     value="<?= e($fieldVal('postal_code', $me['postal_code'] ?? '')) ?>"<?= field_invalid_attr($errs, 'postal_code') ?>>
+              <?= field_error($errs, 'postal_code') ?>
             </div>
 
             <div class="input-group">
@@ -223,14 +242,6 @@ foreach ($errs as $key => $msg) {
               <span>
                 <strong>کارت به کارت / انتقال بانکی</strong>
                 <small>پس از ثبت سفارش، از طریق کارت به کارت یا پایا پرداخت کنید.</small>
-              </span>
-            </label>
-
-            <label class="pay-option<?= $selectedPay === 'credit' ? ' selected' : '' ?>" for="pay-credit">
-              <input id="pay-credit" type="radio" name="payment_method" value="credit"<?= $selectedPay === 'credit' ? ' checked' : '' ?>>
-              <span>
-                <strong>تسویه اعتباری ۳۰ روزه</strong>
-                <small>ویژه پیمانکاران و مشتریان دارای سابقه خرید.</small>
               </span>
             </label>
 

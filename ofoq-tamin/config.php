@@ -20,7 +20,7 @@ if (function_exists('mb_internal_encoding')) {
     mb_internal_encoding('UTF-8');
 }
 
-define('APP_VERSION', '4.1.0');
+define('APP_VERSION', '4.1.1');
 define('APP_ROOT', __DIR__);
 define('DB_FILE', __DIR__ . '/parssaze.db');
 define('APP_TMP', __DIR__ . '/tmp');

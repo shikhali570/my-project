@@ -23,12 +23,11 @@ switch ($act) {
             header('Allow: GET');
             die('روش درخواست مجاز نیست.');
         }
-        if (!is_logged_in()) {
-            http_response_code(403);
-            die('برای دریافت پیوست باید وارد حساب کاربری شوید.');
-        }
-
         $rfqId = (int)get('rfq_id');
+        if (!is_logged_in() && !rfq_guest_session_owns($rfqId)) {
+            http_response_code(403);
+            die('برای دریافت پیوست باید صاحب استعلام باشید یا وارد حساب کاربری شوید.');
+        }
         $token = get('attachment');
         $stmt = $db->prepare('SELECT id, user_id, attachments_json FROM rfqs WHERE id = ?');
         $stmt->execute([$rfqId]);
@@ -37,7 +36,9 @@ switch ($act) {
             http_response_code(404);
             die('استعلام یافت نشد.');
         }
-        if (!is_admin() && (int)($rfq['user_id'] ?? 0) !== user_id()) {
+        $accountOwner = !empty($rfq['user_id']) && (int)$rfq['user_id'] === user_id();
+        $guestSessionOwner = empty($rfq['user_id']) && rfq_guest_session_owns($rfqId);
+        if (!is_admin() && !$accountOwner && !$guestSessionOwner) {
             http_response_code(403);
             die('دسترسی به پیوست این استعلام مجاز نیست.');
         }
@@ -413,11 +414,15 @@ switch ($act) {
             throw $exception;
         }
 
+        $rfqId = (int)$db->lastInsertId();
+        if (!is_logged_in()) {
+            rfq_guest_session_grant($rfqId);
+        }
         if (is_buyer()) {
             notify(user_id(), 'استعلام ' . $code . ' ثبت شد', 'کارشناسان فروش تا حداکثر ۲۴ ساعت کاری قیمت سازمانی را اعلام می‌کنند.', 'index.php?page=panel_rfqs');
         }
         notify_admins('استعلام جدید ' . $code, $company . ' درخواست قیمت ثبت کرد.', 'index.php?page=admin_rfqs');
-        log_action('rfq_create', 'rfq', (int)$db->lastInsertId(), 'ثبت استعلام ' . $code);
+        log_action('rfq_create', 'rfq', $rfqId, 'ثبت استعلام ' . $code);
 
         flash('استعلام شما با کد پیگیری ' . $code . ' ثبت شد. پاسخ قیمت در پنل خریدار قابل مشاهده است.', 'success');
         redirect('index.php?page=' . $returnPage . '&done=' . urlencode($code));

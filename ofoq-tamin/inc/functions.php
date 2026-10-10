@@ -895,6 +895,32 @@ function rfq_attachments_delete_for_rfq($json)
     rfq_attachments_delete(rfq_attachments_decode($json));
 }
 
+/** ثبت استعلام مهمان در نشست فعلی برای دریافت امن پیوست‌های همان مرورگر. */
+function rfq_guest_session_grant($rfqId)
+{
+    $rfqId = (int)$rfqId;
+    if ($rfqId <= 0 || session_status() !== PHP_SESSION_ACTIVE) {
+        return;
+    }
+    $owned = isset($_SESSION['rfq_guest_owned']) && is_array($_SESSION['rfq_guest_owned'])
+        ? $_SESSION['rfq_guest_owned']
+        : [];
+    $owned[(string)$rfqId] = true;
+    if (count($owned) > 20) {
+        $owned = array_fill_keys(array_slice(array_keys($owned), -20), true);
+    }
+    $_SESSION['rfq_guest_owned'] = $owned;
+}
+
+/** آیا نشست مرورگر فعلی همان نشست مهمانی است که این استعلام را ایجاد کرده؟ */
+function rfq_guest_session_owns($rfqId)
+{
+    if (session_status() !== PHP_SESSION_ACTIVE || empty($_SESSION['rfq_guest_owned']) || !is_array($_SESSION['rfq_guest_owned'])) {
+        return false;
+    }
+    return !empty($_SESSION['rfq_guest_owned'][(string)(int)$rfqId]);
+}
+
 function product_url($id)
 {
     return 'index.php?page=product&id=' . (int)$id;

@@ -2,6 +2,21 @@
 /** فرم عمومی استعلام قیمت پروژه (RFQ) */
 $me = current_user();
 $doneCode = get('done');
+$doneRfq = null;
+$doneAttachments = [];
+if ($doneCode !== '') {
+    $doneLookup = $db->prepare('SELECT id, user_id, attachments_json FROM rfqs WHERE rfq_code = ?');
+    $doneLookup->execute([$doneCode]);
+    $candidateRfq = $doneLookup->fetch();
+    if ($candidateRfq) {
+        $accountOwner = !empty($candidateRfq['user_id']) && (int)$candidateRfq['user_id'] === user_id();
+        $guestSessionOwner = empty($candidateRfq['user_id']) && rfq_guest_session_owns((int)$candidateRfq['id']);
+        if ($accountOwner || $guestSessionOwner) {
+            $doneRfq = $candidateRfq;
+            $doneAttachments = rfq_attachments_decode($doneRfq['attachments_json'] ?? '[]');
+        }
+    }
+}
 $myRfqs = [];
 if ($me && $me['role'] === 'buyer') {
     $stmt = $db->prepare('SELECT * FROM rfqs WHERE user_id = ? ORDER BY id DESC LIMIT 5');
@@ -39,6 +54,19 @@ $rfqItemRows = rfq_form_item_rows($itemSource);
     <p class="mini-note">کارشناسان فروش تا حداکثر ۲۴ ساعت کاری پیش‌فاکتور سازمانی را در پنل خریدار ثبت می‌کنند.</p>
     <?php if (is_logged_in()): ?>
       <a class="btn btn-secondary btn-sm" href="index.php?page=panel_rfqs">مشاهده استعلام‌های من</a>
+    <?php endif; ?>
+    <?php if ($doneAttachments && $doneRfq): ?>
+      <div class="rfq-attachments">
+        <strong>پیوست‌های این استعلام</strong>
+        <ul>
+          <?php foreach ($doneAttachments as $attachment): ?>
+            <li>
+              <a href="index.php?action=rfq_attachment_download&amp;rfq_id=<?= (int)$doneRfq['id'] ?>&amp;attachment=<?= e($attachment['token']) ?>"><?= e($attachment['name']) ?></a>
+              <small><?= fa_num(round($attachment['size'] / 1024)) ?> کیلوبایت</small>
+            </li>
+          <?php endforeach; ?>
+        </ul>
+      </div>
     <?php endif; ?>
   </div>
 <?php endif; ?>

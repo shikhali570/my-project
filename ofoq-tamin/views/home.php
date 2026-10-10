@@ -64,21 +64,21 @@ $filtersActive = $q || $brand || $priceMax || $onlyAvailable || $sort !== 'newes
 ?>
 
 <?php if (!$cat && !$q && !$brand): ?>
-  <section class="hero">
+  <section class="hero hero--catalog" aria-labelledby="catalog-hero-title">
     <div class="hero-grid">
-      <div>
-        <span class="hero-badge">🧾 هر سفارش با صورتحساب الکترونیکی رسمی</span>
-        <h1>تجهیزات مهندسی و دفتر فنی پروژه، با فاکتور رسمی</h1>
+      <div class="hero-copy">
+        <span class="hero-badge"><span aria-hidden="true">▤</span> هر سفارش با صورتحساب الکترونیکی رسمی</span>
+        <h1 id="catalog-hero-title">تجهیزات مهندسی و دفتر فنی پروژه، با فاکتور رسمی</h1>
         <p>
           متر و تراز لیزری، رول پلاتر، تجهیزات HSE و لوازم اداری؛ هر کالا با شناسه مالیاتی،
           و هر سفارش با صورتحساب الکترونیکی در کارپوشه شما. ارسال به سراسر کشور.
         </p>
         <div class="hero-actions">
-          <a class="btn btn-primary" href="#catalog">مشاهده کالاها</a>
+          <a class="btn btn-primary" href="#catalog">مشاهده کالاها <span aria-hidden="true">←</span></a>
           <a class="btn btn-outline" href="index.php?page=rfq">استعلام قیمت پروژه</a>
         </div>
       </div>
-      <div class="hero-cards">
+      <div class="hero-cards" aria-label="اطلاعات فروشگاه">
         <div class="hero-card">
           <strong><?= fa_num($db->query("SELECT COUNT(*) FROM products WHERE is_active = 1")->fetchColumn()) ?></strong>
           <span>قلم کالای فعال با شناسه مالیاتی</span>

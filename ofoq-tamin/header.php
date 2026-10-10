@@ -13,7 +13,7 @@ $isBuyerPanel = in_array($currentPage ?? '', $buyerPages, true);
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#172a42">
+  <meta name="theme-color" content="#252b2e">
   <title><?= e($pageTitle) ?> | <?= e(settings('site_name', 'پارس سازه و آفیس')) ?></title>
   <meta name="description" content="خرید آنلاین تجهیزات نقشه‌برداری، ایمنی کارگاهی، رول پلاتر و ملزومات دفاتر فنی با صورتحساب الکترونیکی معتبر سامانه مؤدیان.">
   <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">

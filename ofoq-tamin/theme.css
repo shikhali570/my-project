@@ -1034,3 +1034,181 @@ body.site-body { min-height: 100vh; background: #f3f6f9; color: var(--dark); }
   .site-main { padding-inline: 14px; }
   .hero { border-radius: 18px; }
 }
+
+/* ======================================================================
+   4.1.0 — بازطراحی بصری صنعتی با زغالی، سفالی و کاغذی
+   ====================================================================== */
+:root {
+  --navy: #252b2e;
+  --navy-light: #394246;
+  --blue: #a34e2c;
+  --blue-hover: #853d24;
+  --blue-light: #f7e9df;
+  --orange: #c48a3e;
+  --orange-light: #fbf1df;
+  --green: #2f725b;
+  --green-light: #e3f0e9;
+  --teal: #397985;
+  --dark: #252b2e;
+  --g700: #41484a;
+  --g600: #5e686a;
+  --g500: #7c8585;
+  --g400: #a6adad;
+  --g300: #d2d4d0;
+  --g200: #e4e3de;
+  --g100: #eeede8;
+  --g50: #f7f5ef;
+  --side-w: 272px;
+  --shadow: 0 2px 8px rgba(48,43,36,.045), 0 15px 34px -25px rgba(48,43,36,.24);
+  --shadow-lg: 0 24px 70px -32px rgba(37,43,46,.34);
+  --focus-ring: 0 0 0 4px rgba(163,78,44,.16);
+}
+
+html { scroll-padding-top: 108px; }
+body.site-body { background: #f4f1ea; color: #252b2e; }
+body.admin-body { background: #f1eee7; color: #252b2e; }
+.page-wrapper { padding-top: clamp(24px,3.2vw,44px); }
+
+/* کنتراست صنعتی در نوارهای بالایی و جابه‌جایی اطلاعیه به زیر ناوبری */
+.top-bar { color: #e5e2dc; background: #252b2e; }
+.top-links a { color: #c4c4bf; }
+.top-links a:hover, .top-contact__phone { color: #fff; }
+.top-contact { color: #e5e2dc; }
+.top-contact__dot { background: #d4a05d; box-shadow: 0 0 0 3px rgba(212,160,93,.18); }
+.top-contact__hours { color: #c2c3be; }
+.header.site-header { border-bottom-color: #e5e0d6; box-shadow: 0 8px 24px -22px rgba(37,43,46,.38); }
+.site-brand { color: #252b2e; }
+.site-brand .logo-icon { background: linear-gradient(145deg,#b05c32,#743d2b); }
+.header-search { border-color: #e4e0d6; background: #f8f6f0; }
+.header-search:focus-within { border-color: #bb7655; box-shadow: 0 0 0 4px rgba(163,78,44,.11); }
+.header-search button { background: #323a3d; }
+.header-search button:hover { background: #a34e2c; }
+.nav.site-nav { border-bottom-color: #e4e0d6; background: #fffefa; }
+.nav-link { color: #626765; }
+.nav-link:hover, .nav-link.active { color: #713b29; background: #f7e9df; }
+.nav-link.rfq { color: #795523; background: #fbf1df; }
+.nav-link.rfq:hover { color: #5c411d; background: #f2e4c9; }
+.modiyan-strip { color: #655334; border-color: #e9dfc9; background: #f7efdf; }
+.modiyan-mark { background: #b87938; }
+.modiyan-copy strong { color: #684a26; }
+.modiyan-copy span { color: #75644b; }
+.modiyan-strip__inner > a { color: #8c592d; }
+
+/* صفحات و کارت‌ها با سطوح گرم‌تر و گوشه‌های جمع‌وجورتر */
+.site-main { background: transparent; }
+.card, .cart-table, .cart-summary, .rfq-box, .dash-main, .dash-sidebar,
+.checkout-card, .track-box, .auth-card-full, .auth-side, .about-hero,
+.success-box, .invoice-box-printable {
+  border-color: #e5e0d6;
+  border-radius: 15px;
+  background-color: #fffefa;
+  box-shadow: 0 3px 12px -10px rgba(48,43,36,.2), 0 18px 42px -34px rgba(48,43,36,.28);
+}
+.card-title, .sec-title, .panel-title { color: #252b2e; }
+.sub-title, .sec-sub { color: #737a79; }
+.table-note { background: #f7f4ec; border-color: #e6e0d5; }
+.empty-state { border-color: #d8d1c4; background: #fffefa; }
+.empty-state > span { color: #9a512e; background: #f7e9df; }
+.btn-primary { color: #fff; background: #a34e2c; box-shadow: 0 7px 16px -11px rgba(130,58,31,.62); }
+.btn-primary:hover { color: #fff; background: #853d24; }
+.btn-secondary { color: #41484a; border-color: #e4e0d7; background: #f6f4ee; }
+.btn-secondary:hover { border-color: #d6d0c4; background: #eeeae1; }
+.btn-outline { color: #41484a; border-color: #d7d2c8; background: #fffefa; }
+.btn-outline:hover { color: #8a4529; border-color: #c48b6e; background: #fbf1eb; }
+.link-more, .catalog-back, .auth-links a { color: #9b4c2c; }
+.alert.info { color: #4d5d63; border-color: #d8e0df; background: #eef2f0; }
+.feature-list li, .side-note, .demo-box { border-color: #ebe6dc; background: #f8f6f0; }
+
+/* صفحهٔ فروشگاه: کادر زغالی، رگه‌های نقشه و جزئیات رنگ مس */
+.hero {
+  border-color: rgba(236,222,198,.14);
+  border-radius: 24px;
+  background:
+    radial-gradient(ellipse at 9% 12%, rgba(197,133,75,.22), transparent 36%),
+    linear-gradient(124deg,#252b2e 0%,#323b3e 58%,#4a4a43 100%);
+  box-shadow: 0 24px 60px -38px rgba(37,43,46,.62);
+}
+.hero::before { border-color: rgba(240,225,202,.13); box-shadow: 0 0 0 34px rgba(240,225,202,.025),0 0 0 72px rgba(240,225,202,.02); }
+.hero::after { opacity: .13; background-image: linear-gradient(rgba(245,232,211,.15) 1px,transparent 1px),linear-gradient(90deg,rgba(245,232,211,.15) 1px,transparent 1px); }
+.hero-badge { color: #f1d4aa; border-color: rgba(224,169,107,.32); background: rgba(177,97,52,.2); }
+.hero-actions .btn-primary { color: #30291f; background: #e6bd7e; }
+.hero-actions .btn-primary:hover { color: #30291f; background: #f0d2a3; }
+.hero-actions .btn-outline { color: #f8f3e9; }
+.hero-card { border-color: rgba(242,231,212,.17); background: rgba(255,250,240,.065); }
+.hero-card span { color: #d5cec1; }
+.trust-item { color: #4f5656; border-color: #e5e0d6; background: #fffefa; }
+.trust-item > span { color: #934a2d; background: #f7e9df; }
+.catalog-filters { border-color: #e4dfd5; background: #fffefa; }
+.catalog-search .filter-search { border-color: #e4dfd5; background: #f8f6f0; }
+.pro-card { border-color: #e3ded4; border-radius: 15px; background: #fffefa; box-shadow: 0 5px 16px -14px rgba(48,43,36,.36); }
+.pro-card:hover { border-color: #c99a7c; box-shadow: 0 20px 35px -26px rgba(104,62,41,.4); }
+.pro-media { background: #f0ede5; }
+.pro-thumb { background: radial-gradient(circle at 50% 45%,#fffefa 0%,#f1eee6 73%); }
+.pro-emoji { display: grid; min-height: 100%; place-items: center; color: #8c6245; }
+.pro-price { color: #252b2e; border-color: #eee9df; }
+.pro-taxcode { color: #74592f; background: #f8f0df; }
+.stock.success { color: #28624e; background: #e6f0e9; }
+.cat-card, .mini-card { color: #363d3f; border-color: #e5e0d6; background: #fffefa; }
+.cat-card:hover, .mini-card:hover { border-color: #d3ad91; background: #fbf4ed; }
+.cta-band { border-radius: 19px; background: linear-gradient(120deg,#252b2e,#45453e); box-shadow: 0 18px 45px -34px rgba(37,43,46,.6); }
+.cta-band .btn-orange { color: #30291f; background: #e6bd7e; }
+
+/* کارپوشهٔ خریدار: سطح کاغذی با ناوبری و CTA سفالی */
+.panel-layout { gap: clamp(18px,2.5vw,32px); }
+.panel-menu-wrap { border-color: #e5e0d6; background: #fffefa; }
+.panel-store-link { color: #9b4c2c; }
+.panel-store-link:hover, .panel-link:hover { color: #713b29; background: #f7eee5; }
+.panel-link.active { color: #773f29; background: #f7e9df; }
+.panel-link.active::before { background: #a34e2c; }
+.panel-link__ico { color: #805743; background: #f2eee6; }
+.panel-link.active .panel-link__ico { color: #fff; background: #a34e2c; }
+.panel-side-note { color: #6b716d; border-color: #e7e2d8; background: #f8f6f0; }
+.panel-footer { border-color: #e5e0d6; background: #fffefa; }
+.panel-cart-link { color: #8b4629; }
+
+/* مدیریت: منوی زغالی، محتوای روشن و انتخاب فعال با رنگ کهربایی */
+.admin-side { color: #e8e4dc; border-inline-start-color: #343b3e; background: #252b2e; box-shadow: 8px 0 30px -28px rgba(25,28,29,.65); }
+.admin-brand { color: #fffefa; border-color: rgba(255,255,255,.13); }
+.admin-brand .logo-icon { background: linear-gradient(145deg,#bd6841,#80503a); border-color: rgba(255,255,255,.13); }
+.admin-brand small { color: #c3c0b7; }
+.admin-user { border-color: rgba(255,255,255,.12); background: rgba(255,255,255,.065); }
+.admin-user strong { color: #fffefa; }
+.admin-user small { color: #c3c0b7; }
+.admin-user .side-avatar { color: #fff; background: #a34e2c; }
+.admin-user .pill { color: #f4e5c9; background: rgba(196,138,62,.2); }
+.admin-menu .menu-group-title { color: #aaa9a2; }
+.admin-link { color: #d0cec7; }
+.admin-link:hover { color: #fffefa; background: rgba(255,255,255,.075); }
+.admin-link.active { color: #fff; background: linear-gradient(110deg,#9b4a2a,#7f3f27); box-shadow: 0 10px 22px -16px rgba(0,0,0,.7); }
+.admin-link .ico { color: #e5c59b; background: rgba(255,255,255,.075); }
+.admin-link.active .ico { color: #fff3de; background: rgba(255,255,255,.14); }
+.admin-link .count-chip { color: #30271c; background: #d39a50; }
+.admin-side-foot { border-color: rgba(255,255,255,.14); background: #252b2e; }
+.admin-side-foot .btn-secondary { color: #eee9df; border-color: rgba(255,255,255,.13); background: rgba(255,255,255,.08); }
+.admin-side-foot .btn-secondary:hover { background: rgba(255,255,255,.15); }
+.admin-content, .admin-body { background: #f1eee7; }
+.admin-topbar { border-color: #e3ded4; background: rgba(255,254,250,.96); box-shadow: 0 8px 26px -25px rgba(48,43,36,.38); }
+.admin-topbar .crumbs a { color: #9b4c2c; }
+.admin-foot { color: #777b78; border-color: #e3ded4; background: #fffefa; }
+.admin-page .card { border-color: #e5e0d6; background: #fffefa; }
+.admin-page .data-table th { background: #f6f3ec; }
+.admin-page .kpi-card, .admin-page .mini-stat { border-color: #e5e0d6; background: #fffefa; }
+.admin-backdrop { background: rgba(27,30,31,.58); }
+.burger { color: #853d24; background: #f7e9df; }
+
+:focus-visible { outline-color: rgba(163,78,44,.55); }
+::selection { background: rgba(163,78,44,.18); color: #252b2e; }
+@media (max-width:1024px) {
+  .admin-side { border-inline-start: 0; box-shadow: 18px 0 50px -28px rgba(20,22,23,.62); }
+}
+@media (max-width:768px) {
+  .site-main { padding-inline: clamp(14px,3vw,24px); }
+  .site-nav .nav-scroll { background: #fffefa; }
+  .panel-side { top: auto; }
+}
+@media (max-width:540px) {
+  .site-main { padding-inline: 14px; }
+  .hero { border-radius: 18px; }
+  .modiyan-strip { padding-block: 6px; }
+  .modiyan-copy span { line-height: 1.65; }
+}
